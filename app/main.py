@@ -61,7 +61,7 @@ app.include_router(logs.router, prefix="/admin", tags=["logs"])
 
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 
-_PAGES = {"": "index", "dashboard": "dashboard", "viewer": "viewer", "editor": "editor", "admin": "admin-panel"}
+_PAGES = {"": "index", "dashboard": "dashboard", "viewer": "viewer", "editor": "editor", "admin": "admin"}
 
 
 @app.get("/")
