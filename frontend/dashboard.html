@@ -61,11 +61,14 @@
           ${f.file_size ? `<span class="text-muted">${fmtSize(f.file_size)}</span>` : ''}
         </div>
         <div class="actions">
-          ${f.access_level === 'write'
-            ? `<a href="/editor?file_id=${f.id}" class="btn btn-primary btn-sm">Открыть</a>`
-            : `<a href="/viewer?file_id=${f.id}" class="btn btn-secondary btn-sm">Просмотр</a>`
+          ${f.has_content === false
+            ? `<span class="badge badge-read" style="background:#fde2e1;color:#a12">⚠ Нет данных — загрузите заново</span>`
+            : `${f.access_level === 'write'
+                ? `<a href="/editor?file_id=${f.id}" class="btn btn-primary btn-sm">Открыть</a>`
+                : `<a href="/viewer?file_id=${f.id}" class="btn btn-secondary btn-sm">Просмотр</a>`
+              }
+              <button class="btn btn-secondary btn-sm" onclick="downloadFile(${f.id}, '${escAttr(f.filename)}')">⬇ Скачать</button>`
           }
-          <button class="btn btn-secondary btn-sm" onclick="downloadFile(${f.id}, '${escAttr(f.filename)}')">⬇ Скачать</button>
         </div>
       </div>
     `).join("");
@@ -73,7 +76,11 @@
 
   window.downloadFile = async (id, name) => {
     const res = await apiFetch(`/files/${id}/download`);
-    if (!res.ok) return alert("Ошибка скачивания");
+    if (!res.ok) {
+      let msg = "Ошибка скачивания";
+      try { const j = await res.json(); if (j && j.detail) msg = j.detail; } catch {}
+      return alert(msg);
+    }
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = Object.assign(document.createElement("a"), { href: url, download: name });

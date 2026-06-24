@@ -22,3 +22,7 @@ class ExcelFile(Base):
         onupdate=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+
+    @property
+    def has_content(self) -> bool:
+        return self.file_content is not None and len(self.file_content) > 0

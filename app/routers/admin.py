@@ -14,7 +14,7 @@ from app.models.user import User
 from app.schemas.file import ExcelFileOut
 from app.schemas.permission import PermissionCreate, PermissionOut, PermissionWithUser
 from app.schemas.user import UserCreate, UserOut, UserUpdate
-from app.services import audit_service, file_storage
+from app.services import audit_service
 from app.services.auth_service import hash_password
 
 router = APIRouter()
@@ -159,7 +159,6 @@ def delete_file(
     record = db.query(ExcelFile).filter(ExcelFile.id == file_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="File not found")
-    file_storage.delete_file(record.stored_name)
     db.query(FilePermission).filter(FilePermission.file_id == file_id).delete()
     db.delete(record)
     db.commit()

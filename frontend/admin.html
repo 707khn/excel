@@ -247,7 +247,7 @@
     tbody.innerHTML = allFiles.map(f => `
       <tr>
         <td>${f.id}</td>
-        <td>${escHtml(f.filename)}</td>
+        <td>${escHtml(f.filename)}${f.has_content === false ? ' <span style="color:#a12;font-weight:600">⚠ нет данных</span>' : ''}</td>
         <td>${f.description ? escHtml(f.description) : '<span class="text-muted">—</span>'}</td>
         <td>${f.file_size ? fmtSize(f.file_size) : '—'}</td>
         <td>${new Date(f.created_at).toLocaleString("ru")}</td>

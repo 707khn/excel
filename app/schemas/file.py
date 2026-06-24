@@ -9,6 +9,7 @@ class ExcelFileOut(BaseModel):
     filename: str
     description: Optional[str]
     file_size: Optional[int]
+    has_content: bool = True
     created_at: datetime
     updated_at: datetime
 

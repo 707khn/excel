@@ -11,7 +11,7 @@ from app.models.excel_file import ExcelFile
 from app.models.permission import FilePermission
 from app.models.user import User
 from app.schemas.file import ExcelFileWithAccess, FileContentResponse, FileSaveRequest
-from app.services import audit_service, file_storage
+from app.services import audit_service
 
 router = APIRouter()
 
@@ -41,14 +41,19 @@ def list_files(
 ):
     if current_user.is_admin:
         files = db.query(ExcelFile).all()
-        return [ExcelFileWithAccess(**f.__dict__, access_level="write") for f in files]
+        return [
+            ExcelFileWithAccess(**f.__dict__, has_content=f.has_content, access_level="write")
+            for f in files
+        ]
 
     perms = db.query(FilePermission).filter(FilePermission.user_id == current_user.id).all()
     result = []
     for p in perms:
         f = db.query(ExcelFile).filter(ExcelFile.id == p.file_id).first()
         if f:
-            result.append(ExcelFileWithAccess(**f.__dict__, access_level=p.access_level))
+            result.append(
+                ExcelFileWithAccess(**f.__dict__, has_content=f.has_content, access_level=p.access_level)
+            )
     return result
 
 
@@ -65,7 +70,10 @@ def get_file_content(
         raise HTTPException(status_code=404, detail="File not found")
     raw = file.file_content
     if not raw:
-        raise HTTPException(status_code=404, detail="File data not found")
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail="Файл недоступен: данные были потеряны при перезапуске сервера. Загрузите файл заново.",
+        )
     audit_service.log_action(
         db, request, "FILE_VIEW",
         user_id=current_user.id, user_email=current_user.email,
@@ -91,7 +99,10 @@ def download_file(
         raise HTTPException(status_code=404, detail="File not found")
     raw = file.file_content
     if not raw:
-        raise HTTPException(status_code=404, detail="File data not found")
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail="Файл недоступен: данные были потеряны при перезапуске сервера. Загрузите файл заново.",
+        )
     audit_service.log_action(
         db, request, "FILE_DOWNLOAD",
         user_id=current_user.id, user_email=current_user.email,
