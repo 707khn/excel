@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, Integer, String, Text, ForeignKey
+from sqlalchemy import Column, DateTime, Integer, LargeBinary, String, Text, ForeignKey
 
 from app.database import Base
 
@@ -13,6 +13,7 @@ class ExcelFile(Base):
     stored_name = Column(String(255), unique=True, nullable=False)
     description = Column(Text, nullable=True)
     file_size = Column(Integer, nullable=True)
+    file_content = Column(LargeBinary, nullable=True)
     uploaded_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = Column(

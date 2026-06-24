@@ -128,12 +128,13 @@ async def upload_file(
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid Excel file")
     stored_name = f"{uuid.uuid4()}.xlsx"
-    size = file_storage.save_file(stored_name, raw)
+    size = len(raw)
     record = ExcelFile(
         filename=file.filename,
         stored_name=stored_name,
         description=description,
         file_size=size,
+        file_content=raw,
         uploaded_by=admin.id,
     )
     db.add(record)

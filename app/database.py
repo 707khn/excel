@@ -15,3 +15,17 @@ Base = declarative_base()
 def init_db() -> None:
     from app.models import user, excel_file, permission, audit_log  # noqa: F401
     Base.metadata.create_all(bind=engine)
+    _migrate_add_file_content()
+
+
+def _migrate_add_file_content() -> None:
+    with engine.connect() as conn:
+        from sqlalchemy import text
+        try:
+            if settings.database_url.startswith("sqlite"):
+                conn.execute(text("ALTER TABLE excel_files ADD COLUMN file_content BLOB"))
+            else:
+                conn.execute(text("ALTER TABLE excel_files ADD COLUMN file_content BYTEA"))
+            conn.commit()
+        except Exception:
+            pass  # column already exists

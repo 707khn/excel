@@ -63,10 +63,9 @@ def get_file_content(
     file = db.query(ExcelFile).filter(ExcelFile.id == file_id).first()
     if not file:
         raise HTTPException(status_code=404, detail="File not found")
-    try:
-        raw = file_storage.read_file(file.stored_name)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="File data not found on disk")
+    raw = file.file_content
+    if not raw:
+        raise HTTPException(status_code=404, detail="File data not found")
     audit_service.log_action(
         db, request, "FILE_VIEW",
         user_id=current_user.id, user_email=current_user.email,
@@ -90,10 +89,9 @@ def download_file(
     file = db.query(ExcelFile).filter(ExcelFile.id == file_id).first()
     if not file:
         raise HTTPException(status_code=404, detail="File not found")
-    try:
-        raw = file_storage.read_file(file.stored_name)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="File data not found on disk")
+    raw = file.file_content
+    if not raw:
+        raise HTTPException(status_code=404, detail="File data not found")
     audit_service.log_action(
         db, request, "FILE_DOWNLOAD",
         user_id=current_user.id, user_email=current_user.email,
@@ -128,9 +126,9 @@ def save_file(
         openpyxl.load_workbook(io.BytesIO(raw))
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid Excel file")
-    size = file_storage.save_file(file.stored_name, raw)
     from datetime import datetime, timezone
-    file.file_size = size
+    file.file_content = raw
+    file.file_size = len(raw)
     file.updated_at = datetime.now(timezone.utc)
     db.commit()
     audit_service.log_action(
