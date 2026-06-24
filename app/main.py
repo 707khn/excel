@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.database import SessionLocal, init_db
-from app.routers import admin, auth, files, logs
+from app.routers import admin, auth, files, logs, ws
 from app.services.auth_service import hash_password
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -58,6 +58,7 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(files.router, prefix="/files", tags=["files"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
 app.include_router(logs.router, prefix="/admin", tags=["logs"])
+app.include_router(ws.router, tags=["collab"])
 
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 
