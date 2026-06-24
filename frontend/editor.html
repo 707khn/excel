@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excel Manager — Редактор</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/jspreadsheet.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.css">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/jspreadsheet.js"></script>
+  <style>
+    #spreadsheet { overflow: auto; background: #fff; height: calc(100vh - 130px); }
+    .jexcel_content { height: 100% !important; }
+    .saving-badge { font-size: .8rem; color: #065f46; background: #d1fae5; padding: .2rem .6rem; border-radius: 999px; display: none; }
+    .dirty-badge  { font-size: .8rem; color: #92400e; background: #fef3c7; padding: .2rem .6rem; border-radius: 999px; display: none; }
+  </style>
+</head>
+<body>
+<nav>
+  <span class="brand">Excel Manager</span>
+  <a href="/dashboard">← Назад</a>
+  <button class="nav-btn" id="downloadBtn">⬇ Скачать</button>
+</nav>
+
+<div class="editor-toolbar">
+  <span class="file-name" id="fileName">Загрузка...</span>
+  <span class="badge badge-write">✏️ Редактирование</span>
+  <span class="dirty-badge" id="dirtyBadge">Несохранённые изменения</span>
+  <span class="saving-badge" id="savingBadge">Сохранено ✓</span>
+  <select id="sheetSelect" style="padding:.3rem .5rem;border-radius:4px;border:1px solid #d1d5db;font-size:.85rem"></select>
+  <button class="btn btn-primary btn-sm" id="saveBtn">Сохранить</button>
+</div>
+
+<div id="spreadsheet"></div>
+<div id="errorMsg" class="alert alert-error container" style="display:none;margin-top:.5rem"></div>
+
+<script type="module">
+  import { apiFetch, requireAuth } from "/static/js/api.js";
+  if (!requireAuth()) throw new Error("not auth");
+
+  const params = new URLSearchParams(location.search);
+  const fileId = params.get("file_id");
+  if (!fileId) { location.href = "/dashboard"; throw new Error(); }
+
+  let workbook = null;
+  let currentSheetName = null;
+  let isDirty = false;
+  let jspInstance = null;
+  let originalFilename = "";
+
+  const dirtyBadge = document.getElementById("dirtyBadge");
+  const savingBadge = document.getElementById("savingBadge");
+
+  async function load() {
+    const res = await apiFetch(`/files/${fileId}/content`);
+    if (!res.ok) { showError("Ошибка загрузки файла"); return; }
+    const data = await res.json();
+
+    if (data.access_level !== "write") {
+      window.location.href = `/viewer?file_id=${fileId}`;
+      return;
+    }
+
+    originalFilename = data.filename;
+    document.getElementById("fileName").textContent = data.filename;
+    document.title = `${data.filename} — Редактор`;
+
+    const bytes = Uint8Array.from(atob(data.content), c => c.charCodeAt(0));
+    workbook = XLSX.read(bytes, { type: "array", cellStyles: true });
+
+    const sel = document.getElementById("sheetSelect");
+    workbook.SheetNames.forEach(name => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener("change", () => switchSheet(sel.value));
+
+    switchSheet(workbook.SheetNames[0]);
+
+    document.getElementById("saveBtn").addEventListener("click", saveFile);
+    document.getElementById("downloadBtn").addEventListener("click", downloadFile);
+  }
+
+  function switchSheet(name) {
+    if (isDirty && currentSheetName) {
+      syncToWorkbook();
+    }
+    currentSheetName = name;
+    document.getElementById("sheetSelect").value = name;
+    const ws = workbook.Sheets[name];
+    const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+
+    const container = document.getElementById("spreadsheet");
+    container.innerHTML = "";
+    if (jspInstance) {
+      try { jspInstance[0] && jspInstance[0].destroy && jspInstance[0].destroy(); } catch {}
+    }
+
+    const minCols = Math.max(aoa.reduce((m, r) => Math.max(m, r.length), 0), 10);
+    const minRows = Math.max(aoa.length, 20);
+    const data = padAoa(aoa, minRows, minCols);
+
+    jspInstance = jspreadsheet(container, {
+      data,
+      minDimensions: [minCols, minRows],
+      onchange: () => markDirty(),
+      columnDrag: false,
+      rowDrag: false,
+      allowInsertColumn: false,
+      allowInsertRow: true,
+      allowDeleteColumn: false,
+      allowDeleteRow: true,
+      tableOverflow: true,
+      tableWidth: "100%",
+      tableHeight: "calc(100vh - 140px)",
+    });
+  }
+
+  function padAoa(aoa, rows, cols) {
+    const out = [];
+    for (let r = 0; r < rows; r++) {
+      const row = aoa[r] || [];
+      const padded = [];
+      for (let c = 0; c < cols; c++) padded.push(row[c] !== undefined ? row[c] : "");
+      out.push(padded);
+    }
+    return out;
+  }
+
+  function syncToWorkbook() {
+    if (!jspInstance || !currentSheetName) return;
+    const data = jspInstance.getData ? jspInstance.getData() : (jspInstance[0] && jspInstance[0].getData ? jspInstance[0].getData() : null);
+    if (!data) return;
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    workbook.Sheets[currentSheetName] = ws;
+  }
+
+  function markDirty() {
+    isDirty = true;
+    dirtyBadge.style.display = "inline-block";
+    savingBadge.style.display = "none";
+  }
+
+  async function saveFile() {
+    syncToWorkbook();
+    const saveBtn = document.getElementById("saveBtn");
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Сохранение...";
+    try {
+      const buf = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
+      const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      const res = await apiFetch(`/files/${fileId}/save`, {
+        method: "POST",
+        body: { content: b64 },
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        showError(err.detail || "Ошибка сохранения");
+        return;
+      }
+      isDirty = false;
+      dirtyBadge.style.display = "none";
+      savingBadge.style.display = "inline-block";
+      setTimeout(() => { savingBadge.style.display = "none"; }, 3000);
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Сохранить";
+    }
+  }
+
+  async function downloadFile() {
+    const dlRes = await apiFetch(`/files/${fileId}/download`);
+    const blob = await dlRes.blob();
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement("a"), { href: url, download: originalFilename });
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function showError(msg) {
+    const el = document.getElementById("errorMsg");
+    el.textContent = msg;
+    el.style.display = "block";
+    setTimeout(() => { el.style.display = "none"; }, 5000);
+  }
+
+  window.addEventListener("beforeunload", e => {
+    if (isDirty) e.preventDefault();
+  });
+
+  load();
+</script>
+</body>
+</html>

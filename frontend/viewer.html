@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excel Manager — Просмотр</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <style>
+    #sheetContainer { overflow: auto; background: #fff; }
+    #sheetContainer table { border-collapse: collapse; font-size: .85rem; min-width: 100%; }
+    #sheetContainer td, #sheetContainer th {
+      border: 1px solid #d1d5db; padding: .3rem .5rem;
+      white-space: nowrap; min-width: 80px;
+    }
+    #sheetContainer th { background: #f3f4f6; font-weight: 600; text-align: center; }
+  </style>
+</head>
+<body>
+<nav>
+  <span class="brand">Excel Manager</span>
+  <a href="/dashboard">← Назад</a>
+  <button class="nav-btn" id="downloadBtn">⬇ Скачать</button>
+</nav>
+
+<div class="editor-toolbar">
+  <span class="file-name" id="fileName">Загрузка...</span>
+  <span class="badge badge-read">👁 Только чтение</span>
+</div>
+
+<div class="sheet-tabs" id="sheetTabs"></div>
+<div id="sheetContainer" style="height: calc(100vh - 130px)"></div>
+<div id="errorMsg" class="alert alert-error container" style="display:none"></div>
+
+<script type="module">
+  import { apiFetch, requireAuth } from "/static/js/api.js";
+  if (!requireAuth()) throw new Error("not auth");
+
+  const params = new URLSearchParams(location.search);
+  const fileId = params.get("file_id");
+  if (!fileId) { location.href = "/dashboard"; throw new Error(); }
+
+  let workbook = null;
+  let currentSheet = null;
+
+  async function load() {
+    const res = await apiFetch(`/files/${fileId}/content`);
+    if (!res.ok) { showError("Ошибка загрузки файла"); return; }
+    const data = await res.json();
+    document.getElementById("fileName").textContent = data.filename;
+    document.title = `${data.filename} — Просмотр`;
+    const bytes = Uint8Array.from(atob(data.content), c => c.charCodeAt(0));
+    workbook = XLSX.read(bytes, { type: "array" });
+    renderSheetTabs();
+    renderSheet(workbook.SheetNames[0]);
+
+    document.getElementById("downloadBtn").addEventListener("click", async () => {
+      const dlRes = await apiFetch(`/files/${fileId}/download`);
+      const blob = await dlRes.blob();
+      const url = URL.createObjectURL(blob);
+      const a = Object.assign(document.createElement("a"), { href: url, download: data.filename });
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  function renderSheetTabs() {
+    const tabs = document.getElementById("sheetTabs");
+    tabs.innerHTML = workbook.SheetNames.map(name => `
+      <button class="sheet-tab" data-name="${escAttr(name)}">${escHtml(name)}</button>
+    `).join("");
+    tabs.querySelectorAll(".sheet-tab").forEach(btn => {
+      btn.addEventListener("click", () => renderSheet(btn.dataset.name));
+    });
+  }
+
+  function renderSheet(name) {
+    currentSheet = name;
+    document.querySelectorAll(".sheet-tab").forEach(b => b.classList.toggle("active", b.dataset.name === name));
+    const ws = workbook.Sheets[name];
+    const html = XLSX.utils.sheet_to_html(ws, { editable: false });
+    document.getElementById("sheetContainer").innerHTML = html;
+  }
+
+  function showError(msg) {
+    const el = document.getElementById("errorMsg");
+    el.textContent = msg;
+    el.style.display = "block";
+  }
+
+  function escHtml(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function escAttr(s) { return s.replace(/"/g, "&quot;"); }
+
+  load();
+</script>
+</body>
+</html>

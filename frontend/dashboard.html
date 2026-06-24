@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excel Manager — Файлы</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+<nav>
+  <span class="brand">Excel Manager</span>
+  <span id="userName" class="text-muted" style="color:rgba(255,255,255,.7)"></span>
+  <a id="adminLink" href="/admin" style="display:none">Администрирование</a>
+  <button class="nav-btn" id="logoutBtn">Выйти</button>
+</nav>
+
+<div class="container">
+  <h1 class="page-title">Мои файлы</h1>
+  <div id="loading" class="text-muted">Загрузка...</div>
+  <div id="fileGrid" class="file-grid" style="display:none"></div>
+  <div id="empty" class="empty-state" style="display:none">
+    <p>Нет доступных файлов.<br>Обратитесь к администратору для получения доступа.</p>
+  </div>
+</div>
+
+<script type="module">
+  import { apiFetch, requireAuth, getCurrentUser, clearTokens } from "/static/js/api.js";
+
+  if (!requireAuth()) throw new Error("not auth");
+
+  const user = getCurrentUser();
+  if (user) {
+    document.getElementById("userName").textContent = user.full_name;
+    if (user.is_admin) document.getElementById("adminLink").style.display = "";
+  }
+
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    clearTokens();
+    window.location.href = "/";
+  });
+
+  async function loadFiles() {
+    const res = await apiFetch("/files");
+    if (!res.ok) return;
+    const files = await res.json();
+    const grid = document.getElementById("fileGrid");
+    document.getElementById("loading").style.display = "none";
+    if (!files.length) {
+      document.getElementById("empty").style.display = "block";
+      return;
+    }
+    grid.style.display = "grid";
+    grid.innerHTML = files.map(f => `
+      <div class="file-card">
+        <h3>📄 ${escHtml(f.filename)}</h3>
+        <p>${f.description ? escHtml(f.description) : '<em>Без описания</em>'}</p>
+        <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+          <span class="badge ${f.access_level === 'write' ? 'badge-write' : 'badge-read'}">
+            ${f.access_level === 'write' ? '✏️ Редактирование' : '👁 Просмотр'}
+          </span>
+          ${f.file_size ? `<span class="text-muted">${fmtSize(f.file_size)}</span>` : ''}
+        </div>
+        <div class="actions">
+          ${f.access_level === 'write'
+            ? `<a href="/editor?file_id=${f.id}" class="btn btn-primary btn-sm">Открыть</a>`
+            : `<a href="/viewer?file_id=${f.id}" class="btn btn-secondary btn-sm">Просмотр</a>`
+          }
+          <button class="btn btn-secondary btn-sm" onclick="downloadFile(${f.id}, '${escAttr(f.filename)}')">⬇ Скачать</button>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  window.downloadFile = async (id, name) => {
+    const res = await apiFetch(`/files/${id}/download`);
+    if (!res.ok) return alert("Ошибка скачивания");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement("a"), { href: url, download: name });
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  function escHtml(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+  function escAttr(s) { return s.replace(/'/g, "\\'"); }
+  function fmtSize(b) { return b > 1048576 ? (b/1048576).toFixed(1)+" MB" : (b/1024).toFixed(0)+" KB"; }
+
+  loadFiles();
+</script>
+</body>
+</html>
