@@ -4,128 +4,381 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Excel Manager — Редактор</title>
-  <link rel="stylesheet" href="/static/css/app.css">
   <link rel="stylesheet" href="/static/vendor/jspreadsheet.css">
   <link rel="stylesheet" href="/static/vendor/jsuites.css">
   <script src="/static/vendor/xlsx.full.min.js"></script>
   <script src="/static/vendor/jsuites.js"></script>
   <script src="/static/vendor/jspreadsheet.js"></script>
   <style>
-    #spreadsheet { overflow: auto; background: #fff; height: calc(100vh - 130px); }
-    .jexcel_content { height: 100% !important; }
-    .saving-badge { font-size: .8rem; color: #065f46; background: #d1fae5; padding: .2rem .6rem; border-radius: 999px; display: none; }
-    .dirty-badge  { font-size: .8rem; color: #92400e; background: #fef3c7; padding: .2rem .6rem; border-radius: 999px; display: none; }
-    #onlineUsers { font-size: .8rem; color: rgba(255,255,255,.85); display: flex; align-items: center; gap: .4rem; }
-    .user-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #4ade80; }
-    #wsStatus { font-size: .75rem; padding: .15rem .5rem; border-radius: 999px; }
-    .ws-ok  { background: #d1fae5; color: #065f46; }
-    .ws-err { background: #fee2e2; color: #991b1b; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100vh; overflow: hidden; font-family: "Segoe UI", Arial, sans-serif; display: flex; flex-direction: column; background: #fff; }
+
+    /* ── Nav ── */
+    #em-nav {
+      flex-shrink: 0; height: 40px; background: #217346; color: #fff;
+      display: flex; align-items: center; gap: 10px; padding: 0 10px;
+      font-size: 13px;
+    }
+    #em-nav .brand { font-weight: 700; font-size: 14px; margin-right: 6px; }
+    #em-nav a { color: rgba(255,255,255,.85); text-decoration: none; font-size: 12px; }
+    #em-nav a:hover { color: #fff; }
+    #em-nav .sep { width: 1px; height: 20px; background: rgba(255,255,255,.3); }
+    #em-nav .filename { font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .nav-badge {
+      font-size: 11px; padding: 2px 8px; border-radius: 99px;
+    }
+    .nb-dirty  { background: #fef3c7; color: #92400e; display: none; }
+    .nb-saving { background: #d1fae5; color: #065f46; display: none; }
+    #wsStatus { font-size: 11px; }
+    #onlineUsers { font-size: 11px; color: rgba(255,255,255,.8); }
+    #em-nav button {
+      background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3);
+      color: #fff; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 12px;
+    }
+    #em-nav button:hover { background: rgba(255,255,255,.28); }
+
+    /* ── Ribbon ── */
+    #ribbon {
+      flex-shrink: 0; height: 40px; display: flex; align-items: center; gap: 2px;
+      padding: 0 8px; background: #f3f2f1; border-bottom: 1px solid #c8c6c4;
+    }
+    .rb-sep { width: 1px; height: 22px; background: #c8c6c4; margin: 0 4px; }
+    .rb-btn {
+      height: 28px; min-width: 28px; padding: 0 6px;
+      border: 1px solid transparent; border-radius: 2px;
+      background: transparent; cursor: pointer; font-size: 13px;
+      display: flex; align-items: center; justify-content: center; gap: 2px;
+      color: #333;
+    }
+    .rb-btn:hover { background: #e1dfdd; border-color: #c8c6c4; }
+    .rb-btn.on { background: #deecf9; border-color: #106ebe; }
+    .rb-btn b { font-size: 15px; font-weight: 900; }
+    .rb-btn i { font-style: italic; font-size: 15px; font-weight: 600; }
+    .rb-btn u { font-size: 14px; }
+    .rb-select {
+      height: 26px; padding: 0 4px; border: 1px solid #c8c6c4;
+      border-radius: 2px; background: #fff; font-size: 12px; color: #333;
+    }
+    .rb-color-wrap { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+    .rb-color-wrap span { font-size: 11px; font-weight: 700; line-height: 1; color: #333; }
+    .rb-color-bar { width: 18px; height: 4px; border-radius: 1px; border: 1px solid #888; }
+    .rb-color-wrap input[type=color] { position: absolute; opacity: 0; width: 26px; height: 28px; cursor: pointer; top: 0; left: 0; }
+    .rb-label { font-size: 10px; color: #888; }
+
+    /* ── Sheet tabs ── */
+    #sheet-tabs-bar {
+      flex-shrink: 0; height: 30px; display: flex; align-items: flex-end;
+      background: #e8e8e8; padding: 0 6px; border-bottom: 1px solid #c0c0c0;
+      overflow-x: auto; gap: 2px;
+    }
+    .sh-tab {
+      height: 24px; padding: 0 14px; border: 1px solid #bbb; border-bottom: none;
+      border-radius: 3px 3px 0 0; background: #d0d0d0; cursor: pointer;
+      font-size: 12px; color: #444; white-space: nowrap;
+    }
+    .sh-tab:hover { background: #e8e8e8; }
+    .sh-tab.active { background: #fff; color: #217346; font-weight: 600; border-color: #aaa; }
+
+    /* ── Spreadsheet container ── */
+    #spreadsheet { flex: 1; overflow: hidden; }
+
+    /* Fix jspreadsheet internal layout */
+    .jexcel_content { overflow: auto !important; }
+
+    /* Error toast */
+    #errorToast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #991b1b; color: #fff; padding: 8px 18px; border-radius: 6px;
+      font-size: 13px; z-index: 9999; display: none;
+    }
   </style>
 </head>
 <body>
-<nav>
+
+<!-- Nav -->
+<div id="em-nav">
   <span class="brand">Excel Manager</span>
   <a href="/dashboard">← Назад</a>
-  <div id="onlineUsers"></div>
-  <button class="nav-btn" id="downloadBtn" style="display:none">⬇ Скачать</button>
-</nav>
-
-<div class="editor-toolbar">
-  <span class="file-name" id="fileName">Загрузка...</span>
-  <span class="badge badge-write">✏️ Редактирование</span>
-  <span class="dirty-badge" id="dirtyBadge">Несохранённые изменения</span>
-  <span class="saving-badge" id="savingBadge">Сохранено ✓</span>
+  <div class="sep"></div>
+  <span class="filename" id="fileName">Загрузка...</span>
+  <span class="nav-badge nb-dirty" id="dirtyBadge">● Несохранённые изменения</span>
+  <span class="nav-badge nb-saving" id="savingBadge">✓ Сохранено</span>
+  <div class="sep"></div>
   <span id="wsStatus"></span>
-  <select id="sheetSelect" style="padding:.3rem .5rem;border-radius:4px;border:1px solid #d1d5db;font-size:.85rem"></select>
-  <button class="btn btn-primary btn-sm" id="saveBtn">Сохранить</button>
+  <span id="onlineUsers"></span>
+  <div class="sep"></div>
+  <button id="saveBtn">Сохранить</button>
+  <button id="downloadBtn" style="display:none">⬇ Скачать</button>
 </div>
 
+<!-- Ribbon -->
+<div id="ribbon">
+  <button class="rb-btn" id="btnUndo" title="Отменить (Ctrl+Z)">↩</button>
+  <button class="rb-btn" id="btnRedo" title="Повторить (Ctrl+Y)">↪</button>
+  <div class="rb-sep"></div>
+  <button class="rb-btn" id="btnBold" title="Жирный (Ctrl+B)"><b>Ж</b></button>
+  <button class="rb-btn" id="btnItalic" title="Курсив (Ctrl+I)"><i>К</i></button>
+  <button class="rb-btn" id="btnUnderline" title="Подчёркнутый (Ctrl+U)"><u>Ч</u></button>
+  <div class="rb-sep"></div>
+  <select class="rb-select" id="selFontSize" title="Размер шрифта">
+    <option value="8px">8</option>
+    <option value="9px">9</option>
+    <option value="10px">10</option>
+    <option value="11px" selected>11</option>
+    <option value="12px">12</option>
+    <option value="14px">14</option>
+    <option value="16px">16</option>
+    <option value="18px">18</option>
+    <option value="20px">20</option>
+    <option value="24px">24</option>
+    <option value="28px">28</option>
+    <option value="36px">36</option>
+  </select>
+  <div class="rb-sep"></div>
+  <div class="rb-color-wrap rb-btn" title="Цвет текста">
+    <span>A</span>
+    <div class="rb-color-bar" id="textColorBar" style="background:#000"></div>
+    <input type="color" id="inpTextColor" value="#000000">
+  </div>
+  <div class="rb-color-wrap rb-btn" title="Цвет заливки">
+    <span style="font-size:14px">▩</span>
+    <div class="rb-color-bar" id="fillColorBar" style="background:#ffff00"></div>
+    <input type="color" id="inpFillColor" value="#ffff00">
+  </div>
+  <div class="rb-sep"></div>
+  <button class="rb-btn" id="btnAlignL" title="По левому краю">⬅</button>
+  <button class="rb-btn" id="btnAlignC" title="По центру">☰</button>
+  <button class="rb-btn" id="btnAlignR" title="По правому краю">➡</button>
+</div>
+
+<!-- Sheet tabs -->
+<div id="sheet-tabs-bar"></div>
+
+<!-- Spreadsheet -->
 <div id="spreadsheet"></div>
-<div id="errorMsg" class="alert alert-error container" style="display:none;margin-top:.5rem"></div>
+
+<!-- Error toast -->
+<div id="errorToast"></div>
 
 <script type="module">
   import { apiFetch, requireAuth, getCurrentUser } from "/static/js/api.js";
   if (!requireAuth()) throw new Error("not auth");
 
   const user = getCurrentUser();
-  if (user && user.is_admin) {
-    document.getElementById("downloadBtn").style.display = "";
+  if (user?.is_admin) document.getElementById("downloadBtn").style.display = "";
+
+  const params   = new URLSearchParams(location.search);
+  const fileId   = params.get("file_id");
+  if (!fileId) { location.href = "/dashboard"; throw new Error("no file_id"); }
+
+  /* ── State ─────────────────────────────────────────────────── */
+  let workbook         = null;
+  let currentSheetName = null;
+  let jspInstance      = null;
+  let isDirty          = false;
+  let applyingRemote   = false;
+  let sel              = null;  // {x1,y1,x2,y2}
+  let originalFilename = "";
+
+  /* ── Helpers ─────────────────────────────────────────────────── */
+  function colLetter(n) {
+    let s = "", x = n + 1;
+    while (x > 0) { const r = (x - 1) % 26; s = String.fromCharCode(65 + r) + s; x = Math.floor((x - 1) / 26); }
+    return s;
+  }
+  function cellName(c, r) { return colLetter(c) + (r + 1); }
+
+  function padAoa(aoa, rows, cols) {
+    const out = [];
+    for (let r = 0; r < rows; r++) {
+      const row = aoa[r] || [];
+      out.push(Array.from({length: cols}, (_, c) => row[c] !== undefined ? row[c] : ""));
+    }
+    return out;
   }
 
-  const params = new URLSearchParams(location.search);
-  const fileId = params.get("file_id");
-  if (!fileId) { location.href = "/dashboard"; throw new Error(); }
+  /* Convert xlsx cell style → CSS string */
+  function xlsxStyleToCSS(s) {
+    if (!s) return "";
+    const p = [];
+    const f = s.font;
+    if (f) {
+      if (f.bold)    p.push("font-weight:bold");
+      if (f.italic)  p.push("font-style:italic");
+      if (f.underline) p.push("text-decoration:underline");
+      if (f.sz && f.sz !== 11) p.push(`font-size:${Math.round(f.sz * 96 / 72)}px`);
+      if (f.color?.rgb) {
+        const rgb = f.color.rgb.replace(/^FF/i, "").padStart(6, "0");
+        if (!/^0{6}$/i.test(rgb)) p.push(`color:#${rgb}`);
+      }
+    }
+    const fill = s.fill;
+    if (fill?.patternType === "solid" && fill.fgColor?.rgb) {
+      const rgb = fill.fgColor.rgb.replace(/^FF/i, "").padStart(6, "0");
+      if (!/^(F{6}|0{6})$/i.test(rgb)) p.push(`background-color:#${rgb}`);
+    }
+    const a = s.alignment;
+    if (a?.horizontal === "center") p.push("text-align:center");
+    else if (a?.horizontal === "right") p.push("text-align:right");
+    if (a?.wrapText) p.push("white-space:pre-wrap");
+    return p.join(";");
+  }
 
-  let workbook = null;
-  let currentSheetName = null;
-  let isDirty = false;
-  let jspInstance = null;
-  let originalFilename = "";
-  let applyingRemote = false;
+  /* Build {cellAddr: cssStr} map from a sheet */
+  function buildStyleMap(ws) {
+    const map = {};
+    if (!ws["!ref"]) return map;
+    const range = XLSX.utils.decode_range(ws["!ref"]);
+    for (let r = range.s.r; r <= range.e.r; r++)
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const addr = XLSX.utils.encode_cell({r, c});
+        const cell = ws[addr];
+        if (cell?.s) { const css = xlsxStyleToCSS(cell.s); if (css) map[addr] = css; }
+      }
+    return map;
+  }
 
-  const dirtyBadge  = document.getElementById("dirtyBadge");
-  const savingBadge = document.getElementById("savingBadge");
-  const wsStatusEl  = document.getElementById("wsStatus");
-
-  // ── WebSocket ──────────────────────────────────────────────────────────────
-  let ws = null;
-  let wsReconnectTimer = null;
+  /* ── WebSocket ─────────────────────────────────────────────── */
+  let ws = null, wsTimer = null;
 
   function connectWS() {
     const token = localStorage.getItem("access_token");
     if (!token) return;
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
     ws = new WebSocket(`${proto}//${location.host}/ws/files/${fileId}?token=${encodeURIComponent(token)}`);
-
-    ws.onopen = () => {
-      wsStatusEl.textContent = "● онлайн";
-      wsStatusEl.className = "ws-ok";
-      if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
-    };
-
+    ws.onopen  = () => { setWsStatus("● онлайн", "#4ade80"); if (wsTimer) { clearTimeout(wsTimer); wsTimer = null; } };
+    ws.onclose = () => { setWsStatus("● офлайн", "#f87171"); renderPresence([]); wsTimer = setTimeout(connectWS, 4000); };
+    ws.onerror = () => ws.close();
     ws.onmessage = (e) => {
-      let msg;
-      try { msg = JSON.parse(e.data); } catch { return; }
-
+      let msg; try { msg = JSON.parse(e.data); } catch { return; }
       if (msg.type === "cell" && msg.sheet === currentSheetName && jspInstance) {
         applyingRemote = true;
-        try {
-          const inst = Array.isArray(jspInstance) ? jspInstance[0] : jspInstance;
-          if (inst && inst.setValueFromCoords) {
-            inst.setValueFromCoords(msg.col, msg.row, msg.value, true);
-          }
-        } finally {
-          applyingRemote = false;
-        }
+        try { jspInstance.setValueFromCoords(msg.col, msg.row, msg.value, true); }
+        finally { applyingRemote = false; }
       } else if (msg.type === "presence") {
         renderPresence(msg.users);
       }
     };
-
-    ws.onclose = () => {
-      wsStatusEl.textContent = "● офлайн";
-      wsStatusEl.className = "ws-err";
-      renderPresence([]);
-      wsReconnectTimer = setTimeout(connectWS, 4000);
-    };
-
-    ws.onerror = () => ws.close();
   }
 
-  function sendCell(row, col, value) {
-    if (ws && ws.readyState === WebSocket.OPEN && !applyingRemote) {
-      ws.send(JSON.stringify({ type: "cell", sheet: currentSheetName, row, col, value }));
-    }
+  function setWsStatus(text, color) {
+    const el = document.getElementById("wsStatus");
+    el.textContent = text; el.style.color = color;
   }
-
   function renderPresence(users) {
     const el = document.getElementById("onlineUsers");
-    if (!users.length) { el.innerHTML = ""; return; }
-    el.innerHTML = '<span class="user-dot"></span>' +
-      users.map(u => `<span>${escHtml(u)}</span>`).join(", ");
+    el.textContent = users.length > 1 ? "· " + users.join(", ") : "";
+  }
+  function sendCell(row, col, value) {
+    if (ws?.readyState === WebSocket.OPEN && !applyingRemote)
+      ws.send(JSON.stringify({type:"cell", sheet:currentSheetName, row, col, value}));
   }
 
-  // ── Load ───────────────────────────────────────────────────────────────────
+  /* ── Dirty / saving badges ─────────────────────────────────── */
+  function markDirty() {
+    isDirty = true;
+    document.getElementById("dirtyBadge").style.display = "";
+    document.getElementById("savingBadge").style.display = "none";
+  }
+  function markSaved() {
+    isDirty = false;
+    document.getElementById("dirtyBadge").style.display = "none";
+    const s = document.getElementById("savingBadge");
+    s.style.display = "";
+    setTimeout(() => { s.style.display = "none"; }, 2500);
+  }
+
+  /* ── Sheet init ─────────────────────────────────────────────── */
+  const RIBBON_H  = 40;
+  const NAV_H     = 40;
+  const TABS_H    = 30;
+  const TABLE_H   = `calc(100vh - ${NAV_H + RIBBON_H + TABS_H}px)`;
+
+  function initSheet(name) {
+    if (jspInstance) {
+      try { jspInstance.destroy(); } catch {}
+      jspInstance = null;
+    }
+    const container = document.getElementById("spreadsheet");
+    container.innerHTML = "";
+
+    const ws = workbook.Sheets[name];
+    const aoa = XLSX.utils.sheet_to_json(ws, {header: 1, defval: ""});
+
+    const numDataCols = aoa.reduce((m, r) => Math.max(m, r.length), 0);
+    const minCols = Math.max(numDataCols, 10);
+    const minRows = Math.max(aoa.length, 50);
+
+    /* Column widths from xlsx */
+    const rawCols = ws["!cols"] || [];
+    const columns = Array.from({length: minCols}, (_, i) => {
+      const col = rawCols[i];
+      if (!col) return {width: 80};
+      const px = col.wpx || Math.round((col.wch || 8.43) * (col.MDW || 7));
+      return {width: Math.max(px, 20)};
+    });
+
+    /* Row heights from xlsx */
+    const rawRows = ws["!rows"] || [];
+    const rows = {};
+    rawRows.forEach((row, i) => {
+      if (!row) return;
+      const h = row.hpx || (row.hpt ? Math.round(row.hpt * 96 / 72) : 0);
+      if (h > 0) rows[i] = {height: h};
+    });
+
+    /* Cell styles from xlsx */
+    const style = buildStyleMap(ws);
+
+    const data = padAoa(aoa, minRows, minCols);
+
+    jspInstance = jspreadsheet(container, {
+      data,
+      columns,
+      rows,
+      style,
+      minDimensions: [minCols, minRows],
+      tableWidth:  "100%",
+      tableHeight: TABLE_H,
+      tableOverflow: true,
+      onchange: (el, cell, col, row, value) => {
+        if (!applyingRemote) { markDirty(); sendCell(row, col, value); }
+      },
+      onselection: (el, x1, y1, x2, y2) => { sel = {x1, y1, x2, y2}; },
+      allowInsertColumn: true,
+      allowInsertRow:    true,
+      allowDeleteColumn: true,
+      allowDeleteRow:    true,
+      columnDrag:  false,
+      rowDrag:     false,
+    });
+  }
+
+  /* ── Sheet switching ─────────────────────────────────────────── */
+  function syncToWorkbook() {
+    if (!jspInstance || !currentSheetName) return;
+    const data = jspInstance.getData();
+    workbook.Sheets[currentSheetName] = XLSX.utils.aoa_to_sheet(data);
+  }
+
+  function switchSheet(name) {
+    if (currentSheetName && isDirty) syncToWorkbook();
+    currentSheetName = name;
+    renderSheetTabs();
+    initSheet(name);
+  }
+
+  function renderSheetTabs() {
+    const bar = document.getElementById("sheet-tabs-bar");
+    bar.innerHTML = workbook.SheetNames.map(n =>
+      `<button class="sh-tab${n===currentSheetName?" active":""}" data-name="${escAttr(n)}">${escHtml(n)}</button>`
+    ).join("");
+    bar.querySelectorAll(".sh-tab").forEach(btn =>
+      btn.addEventListener("click", () => switchSheet(btn.dataset.name))
+    );
+  }
+
+  /* ── Load ────────────────────────────────────────────────────── */
   async function load() {
     const res = await apiFetch(`/files/${fileId}/content`);
     if (!res.ok) {
@@ -134,149 +387,95 @@
       showError(msg); return;
     }
     const data = await res.json();
-
-    if (data.access_level !== "write") {
-      window.location.href = `/viewer?file_id=${fileId}`;
-      return;
-    }
+    if (data.access_level !== "write") { location.href = `/viewer?file_id=${fileId}`; return; }
 
     originalFilename = data.filename;
     document.getElementById("fileName").textContent = data.filename;
     document.title = `${data.filename} — Редактор`;
 
     const bytes = Uint8Array.from(atob(data.content), c => c.charCodeAt(0));
-    workbook = XLSX.read(bytes, { type: "array", cellStyles: true });
-
-    const sel = document.getElementById("sheetSelect");
-    workbook.SheetNames.forEach(name => {
-      const opt = document.createElement("option");
-      opt.value = name; opt.textContent = name;
-      sel.appendChild(opt);
-    });
-    sel.addEventListener("change", () => switchSheet(sel.value));
+    workbook = XLSX.read(bytes, {type: "array", cellStyles: true});
 
     switchSheet(workbook.SheetNames[0]);
-
-    document.getElementById("saveBtn").addEventListener("click", saveFile);
-    document.getElementById("downloadBtn").addEventListener("click", downloadFile);
-
     connectWS();
   }
 
-  // ── Sheet ──────────────────────────────────────────────────────────────────
-  function switchSheet(name) {
-    if (isDirty && currentSheetName) syncToWorkbook();
-    currentSheetName = name;
-    document.getElementById("sheetSelect").value = name;
-    const ws = workbook.Sheets[name];
-    const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-
-    const container = document.getElementById("spreadsheet");
-    container.innerHTML = "";
-    if (jspInstance) {
-      try {
-        const inst = Array.isArray(jspInstance) ? jspInstance[0] : jspInstance;
-        if (inst && inst.destroy) inst.destroy();
-      } catch {}
-    }
-
-    const minCols = Math.max(aoa.reduce((m, r) => Math.max(m, r.length), 0), 10);
-    const minRows = Math.max(aoa.length, 20);
-    const data = padAoa(aoa, minRows, minCols);
-
-    jspInstance = jspreadsheet(container, {
-      data,
-      minDimensions: [minCols, minRows],
-      onchange: (el, cell, col, row, value) => {
-        markDirty();
-        sendCell(row, col, value);
-      },
-      columnDrag: false,
-      rowDrag: false,
-      allowInsertColumn: false,
-      allowInsertRow: true,
-      allowDeleteColumn: false,
-      allowDeleteRow: true,
-      tableOverflow: true,
-      tableWidth: "100%",
-      tableHeight: "calc(100vh - 140px)",
-    });
-  }
-
-  function padAoa(aoa, rows, cols) {
-    const out = [];
-    for (let r = 0; r < rows; r++) {
-      const row = aoa[r] || [];
-      const padded = [];
-      for (let c = 0; c < cols; c++) padded.push(row[c] !== undefined ? row[c] : "");
-      out.push(padded);
-    }
-    return out;
-  }
-
-  function syncToWorkbook() {
-    if (!jspInstance || !currentSheetName) return;
-    const inst = Array.isArray(jspInstance) ? jspInstance[0] : jspInstance;
-    const data = inst && inst.getData ? inst.getData() : null;
-    if (!data) return;
-    workbook.Sheets[currentSheetName] = XLSX.utils.aoa_to_sheet(data);
-  }
-
-  function markDirty() {
-    isDirty = true;
-    dirtyBadge.style.display = "inline-block";
-    savingBadge.style.display = "none";
-  }
-
-  // ── Save ───────────────────────────────────────────────────────────────────
+  /* ── Save ────────────────────────────────────────────────────── */
   async function saveFile() {
     syncToWorkbook();
-    const saveBtn = document.getElementById("saveBtn");
-    saveBtn.disabled = true;
-    saveBtn.textContent = "Сохранение...";
+    const btn = document.getElementById("saveBtn");
+    btn.disabled = true; btn.textContent = "Сохранение...";
     try {
-      const buf = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
+      const buf = XLSX.write(workbook, {type: "array", bookType: "xlsx"});
       const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
-      const res = await apiFetch(`/files/${fileId}/save`, {
-        method: "POST",
-        body: { content: b64 },
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        showError(err.detail || "Ошибка сохранения");
-        return;
-      }
-      isDirty = false;
-      dirtyBadge.style.display = "none";
-      savingBadge.style.display = "inline-block";
-      setTimeout(() => { savingBadge.style.display = "none"; }, 3000);
-    } finally {
-      saveBtn.disabled = false;
-      saveBtn.textContent = "Сохранить";
-    }
+      const res = await apiFetch(`/files/${fileId}/save`, {method:"POST", body:{content:b64}});
+      if (!res.ok) { const j = await res.json(); showError(j.detail || "Ошибка сохранения"); return; }
+      markSaved();
+    } finally { btn.disabled = false; btn.textContent = "Сохранить"; }
   }
 
-  // ── Download (admin only) ──────────────────────────────────────────────────
-  async function downloadFile() {
-    const dlRes = await apiFetch(`/files/${fileId}/download`);
-    if (!dlRes.ok) { showError("Ошибка скачивания"); return; }
-    const blob = await dlRes.blob();
+  document.getElementById("saveBtn").addEventListener("click", saveFile);
+  document.getElementById("downloadBtn").addEventListener("click", async () => {
+    const r = await apiFetch(`/files/${fileId}/download`);
+    if (!r.ok) { showError("Ошибка скачивания"); return; }
+    const blob = await r.blob();
     const url = URL.createObjectURL(blob);
-    const a = Object.assign(document.createElement("a"), { href: url, download: originalFilename });
-    a.click();
+    Object.assign(document.createElement("a"), {href: url, download: originalFilename}).click();
     URL.revokeObjectURL(url);
+  });
+
+  /* ── Ribbon ──────────────────────────────────────────────────── */
+  function getSelection() {
+    if (!sel || !jspInstance) return [];
+    const cells = [];
+    for (let r = sel.y1; r <= sel.y2; r++)
+      for (let c = sel.x1; c <= sel.x2; c++) cells.push(cellName(c, r));
+    return cells;
   }
 
+  function applyStyle(prop, val) {
+    if (!jspInstance || !sel) return;
+    const styles = {};
+    getSelection().forEach(cell => { styles[cell] = `${prop}:${val}`; });
+    jspInstance.setStyle(styles);
+    markDirty();
+  }
+
+  function toggleStyle(prop, onVal, offVal = "initial") {
+    if (!jspInstance || !sel) return;
+    const cur = jspInstance.getStyle(cellName(sel.x1, sel.y1), prop);
+    applyStyle(prop, cur === onVal ? offVal : onVal);
+    document.getElementById({
+      "font-weight": "btnBold", "font-style": "btnItalic", "text-decoration": "btnUnderline"
+    }[prop])?.classList.toggle("on", cur !== onVal);
+  }
+
+  document.getElementById("btnUndo").addEventListener("click", () => jspInstance?.undo());
+  document.getElementById("btnRedo").addEventListener("click", () => jspInstance?.redo());
+  document.getElementById("btnBold").addEventListener("click", () => toggleStyle("font-weight", "bold"));
+  document.getElementById("btnItalic").addEventListener("click", () => toggleStyle("font-style", "italic"));
+  document.getElementById("btnUnderline").addEventListener("click", () => toggleStyle("text-decoration", "underline"));
+  document.getElementById("selFontSize").addEventListener("change", (e) => applyStyle("font-size", e.target.value));
+  document.getElementById("inpTextColor").addEventListener("input", (e) => {
+    applyStyle("color", e.target.value);
+    document.getElementById("textColorBar").style.background = e.target.value;
+  });
+  document.getElementById("inpFillColor").addEventListener("input", (e) => {
+    applyStyle("background-color", e.target.value);
+    document.getElementById("fillColorBar").style.background = e.target.value;
+  });
+  document.getElementById("btnAlignL").addEventListener("click", () => applyStyle("text-align", "left"));
+  document.getElementById("btnAlignC").addEventListener("click", () => applyStyle("text-align", "center"));
+  document.getElementById("btnAlignR").addEventListener("click", () => applyStyle("text-align", "right"));
+
+  /* ── Utils ───────────────────────────────────────────────────── */
   function showError(msg) {
-    const el = document.getElementById("errorMsg");
-    el.textContent = msg;
-    el.style.display = "block";
+    const el = document.getElementById("errorToast");
+    el.textContent = msg; el.style.display = "block";
     setTimeout(() => { el.style.display = "none"; }, 5000);
   }
-
-  function escHtml(s) {
-    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  }
+  function escHtml(s) { return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+  function escAttr(s) { return String(s).replace(/"/g,"&quot;"); }
 
   window.addEventListener("beforeunload", e => { if (isDirty) e.preventDefault(); });
 
