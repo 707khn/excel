@@ -277,14 +277,14 @@
   /* ── Dirty / saving badges ─────────────────────────────────── */
   function markDirty() {
     isDirty = true;
-    document.getElementById("dirtyBadge").style.display = "";
+    document.getElementById("dirtyBadge").style.display = "inline-block";
     document.getElementById("savingBadge").style.display = "none";
   }
   function markSaved() {
     isDirty = false;
     document.getElementById("dirtyBadge").style.display = "none";
     const s = document.getElementById("savingBadge");
-    s.style.display = "";
+    s.style.display = "inline-block";
     setTimeout(() => { s.style.display = "none"; }, 2500);
   }
 

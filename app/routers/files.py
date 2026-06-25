@@ -138,8 +138,9 @@ def save_file(
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid Excel file")
     from datetime import datetime, timezone
+    size = len(raw)
     file.file_content = raw
-    file.file_size = len(raw)
+    file.file_size = size
     file.updated_at = datetime.now(timezone.utc)
     db.commit()
     audit_service.log_action(
