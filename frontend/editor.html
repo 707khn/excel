@@ -16,17 +16,14 @@
     /* ── Nav ── */
     #em-nav {
       flex-shrink: 0; height: 40px; background: #217346; color: #fff;
-      display: flex; align-items: center; gap: 10px; padding: 0 10px;
-      font-size: 13px;
+      display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 13px;
     }
     #em-nav .brand { font-weight: 700; font-size: 14px; margin-right: 6px; }
     #em-nav a { color: rgba(255,255,255,.85); text-decoration: none; font-size: 12px; }
     #em-nav a:hover { color: #fff; }
     #em-nav .sep { width: 1px; height: 20px; background: rgba(255,255,255,.3); }
     #em-nav .filename { font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .nav-badge {
-      font-size: 11px; padding: 2px 8px; border-radius: 99px;
-    }
+    .nav-badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; }
     .nb-dirty  { background: #fef3c7; color: #92400e; display: none; }
     .nb-saving { background: #d1fae5; color: #065f46; display: none; }
     #wsStatus { font-size: 11px; }
@@ -37,33 +34,74 @@
     }
     #em-nav button:hover { background: rgba(255,255,255,.28); }
 
-    /* ── Ribbon ── */
-    #ribbon {
-      flex-shrink: 0; height: 40px; display: flex; align-items: center; gap: 2px;
-      padding: 0 8px; background: #f3f2f1; border-bottom: 1px solid #c8c6c4;
+    /* ── Ribbon tabs (Главная / Вставка / ...) ── */
+    #ribbon-tabs {
+      flex-shrink: 0; height: 30px; display: flex; align-items: flex-end; gap: 1px;
+      background: #f3f2f1; padding: 0 6px; border-bottom: 1px solid #d6d4d2;
     }
-    .rb-sep { width: 1px; height: 22px; background: #c8c6c4; margin: 0 4px; }
+    .rt-tab {
+      height: 26px; padding: 0 16px; border: none; background: transparent; cursor: pointer;
+      font-size: 13px; color: #444; border-radius: 4px 4px 0 0;
+    }
+    .rt-tab:hover { background: #e7e6e5; }
+    .rt-tab.active { background: #fff; color: #217346; font-weight: 600; border: 1px solid #d6d4d2; border-bottom: 1px solid #fff; }
+
+    /* ── Ribbon panels ── */
+    #ribbon {
+      flex-shrink: 0; height: 78px; background: #fff; border-bottom: 1px solid #c8c6c4;
+      overflow-x: auto; overflow-y: hidden;
+    }
+    .ribbon-panel { display: none; height: 100%; align-items: stretch; padding: 4px 4px 2px; }
+    .ribbon-panel.active { display: flex; }
+    .rb-group {
+      display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+      padding: 2px 6px; border-right: 1px solid #e1dfdd; min-width: max-content;
+    }
+    .rb-group-tools { display: flex; align-items: center; gap: 3px; flex: 1; flex-wrap: wrap; max-width: 320px; }
+    .rb-group-label { font-size: 10px; color: #888; margin-top: 2px; white-space: nowrap; }
+    .rb-row { display: flex; align-items: center; gap: 2px; }
+    .rb-col { display: flex; flex-direction: column; gap: 2px; }
+
     .rb-btn {
-      height: 28px; min-width: 28px; padding: 0 6px;
-      border: 1px solid transparent; border-radius: 2px;
+      height: 24px; min-width: 24px; padding: 0 6px; border: 1px solid transparent; border-radius: 2px;
       background: transparent; cursor: pointer; font-size: 13px;
-      display: flex; align-items: center; justify-content: center; gap: 2px;
-      color: #333;
+      display: flex; align-items: center; justify-content: center; gap: 3px; color: #333; white-space: nowrap;
     }
     .rb-btn:hover { background: #e1dfdd; border-color: #c8c6c4; }
     .rb-btn.on { background: #deecf9; border-color: #106ebe; }
-    .rb-btn b { font-size: 15px; font-weight: 900; }
-    .rb-btn i { font-style: italic; font-size: 15px; font-weight: 600; }
-    .rb-btn u { font-size: 14px; }
-    .rb-select {
-      height: 26px; padding: 0 4px; border: 1px solid #c8c6c4;
-      border-radius: 2px; background: #fff; font-size: 12px; color: #333;
+    .rb-btn.big { height: 52px; flex-direction: column; font-size: 11px; gap: 2px; padding: 0 8px; }
+    .rb-btn.big .ico { font-size: 20px; }
+    .rb-btn b { font-size: 14px; font-weight: 900; }
+    .rb-btn i { font-style: italic; font-size: 14px; font-weight: 600; }
+    .rb-btn u { font-size: 13px; }
+    .rb-select { height: 24px; padding: 0 4px; border: 1px solid #c8c6c4; border-radius: 2px; background: #fff; font-size: 12px; color: #333; }
+    .rb-sep { width: 1px; height: 22px; background: #c8c6c4; margin: 0 3px; }
+
+    .rb-color-wrap { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; height: 24px; justify-content: center; padding: 0 4px; border: 1px solid transparent; border-radius: 2px; }
+    .rb-color-wrap:hover { background: #e1dfdd; border-color: #c8c6c4; }
+    .rb-color-wrap span { font-size: 12px; font-weight: 700; line-height: 1; color: #333; }
+    .rb-color-bar { width: 16px; height: 3px; border-radius: 1px; border: 1px solid #888; }
+    .rb-color-wrap input[type=color] { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; top: 0; left: 0; }
+
+    /* dropdown menus */
+    .rb-dd { position: relative; }
+    .rb-dd-menu {
+      position: absolute; top: 100%; left: 0; z-index: 50; background: #fff;
+      border: 1px solid #c8c6c4; box-shadow: 0 4px 12px rgba(0,0,0,.18); border-radius: 3px;
+      min-width: 160px; padding: 4px 0; display: none;
     }
-    .rb-color-wrap { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
-    .rb-color-wrap span { font-size: 11px; font-weight: 700; line-height: 1; color: #333; }
-    .rb-color-bar { width: 18px; height: 4px; border-radius: 1px; border: 1px solid #888; }
-    .rb-color-wrap input[type=color] { position: absolute; opacity: 0; width: 26px; height: 28px; cursor: pointer; top: 0; left: 0; }
-    .rb-label { font-size: 10px; color: #888; }
+    .rb-dd.open .rb-dd-menu { display: block; }
+    .rb-dd-item { padding: 6px 14px; font-size: 12px; cursor: pointer; white-space: nowrap; color: #333; display: flex; align-items: center; gap: 8px; }
+    .rb-dd-item:hover { background: #e1dfdd; }
+
+    /* ── Formula bar ── */
+    #formula-bar {
+      flex-shrink: 0; height: 26px; display: flex; align-items: center; gap: 0;
+      border-bottom: 1px solid #c8c6c4; background: #fff; font-size: 13px;
+    }
+    #nameBox { width: 90px; height: 100%; border: none; border-right: 1px solid #d0d0d0; text-align: center; font-size: 12px; outline: none; }
+    #fxLabel { padding: 0 8px; color: #888; font-style: italic; }
+    #formulaInput { flex: 1; height: 100%; border: none; padding: 0 8px; outline: none; font-size: 13px; }
 
     /* ── Sheet tabs ── */
     #sheet-tabs-bar {
@@ -81,9 +119,8 @@
 
     /* ── Spreadsheet container ── */
     #spreadsheet { flex: 1; overflow: hidden; }
-
-    /* Fix jspreadsheet internal layout */
     .jexcel_content { overflow: auto !important; }
+    #spreadsheet.no-grid .jexcel td { border-color: transparent !important; }
 
     /* Error toast */
     #errorToast {
@@ -111,44 +148,239 @@
   <button id="downloadBtn" style="display:none">⬇ Скачать</button>
 </div>
 
-<!-- Ribbon -->
+<!-- Ribbon tabs -->
+<div id="ribbon-tabs">
+  <button class="rt-tab active" data-tab="home">Главная</button>
+  <button class="rt-tab" data-tab="insert">Вставка</button>
+  <button class="rt-tab" data-tab="formulas">Формулы</button>
+  <button class="rt-tab" data-tab="data">Данные</button>
+  <button class="rt-tab" data-tab="view">Вид</button>
+</div>
+
+<!-- Ribbon panels -->
 <div id="ribbon">
-  <button class="rb-btn" id="btnUndo" title="Отменить (Ctrl+Z)">↩</button>
-  <button class="rb-btn" id="btnRedo" title="Повторить (Ctrl+Y)">↪</button>
-  <div class="rb-sep"></div>
-  <button class="rb-btn" id="btnBold" title="Жирный (Ctrl+B)"><b>Ж</b></button>
-  <button class="rb-btn" id="btnItalic" title="Курсив (Ctrl+I)"><i>К</i></button>
-  <button class="rb-btn" id="btnUnderline" title="Подчёркнутый (Ctrl+U)"><u>Ч</u></button>
-  <div class="rb-sep"></div>
-  <select class="rb-select" id="selFontSize" title="Размер шрифта">
-    <option value="8px">8</option>
-    <option value="9px">9</option>
-    <option value="10px">10</option>
-    <option value="11px" selected>11</option>
-    <option value="12px">12</option>
-    <option value="14px">14</option>
-    <option value="16px">16</option>
-    <option value="18px">18</option>
-    <option value="20px">20</option>
-    <option value="24px">24</option>
-    <option value="28px">28</option>
-    <option value="36px">36</option>
-  </select>
-  <div class="rb-sep"></div>
-  <div class="rb-color-wrap rb-btn" title="Цвет текста">
-    <span>A</span>
-    <div class="rb-color-bar" id="textColorBar" style="background:#000"></div>
-    <input type="color" id="inpTextColor" value="#000000">
+
+  <!-- ГЛАВНАЯ -->
+  <div class="ribbon-panel active" data-tab="home">
+    <!-- Буфер обмена -->
+    <div class="rb-group">
+      <div class="rb-group-tools">
+        <button class="rb-btn big" id="btnPaste" title="Вставить (Ctrl+V)"><span class="ico">📋</span>Вставить</button>
+        <div class="rb-col">
+          <button class="rb-btn" id="btnCut" title="Вырезать (Ctrl+X)">✂ Вырезать</button>
+          <button class="rb-btn" id="btnCopy" title="Копировать (Ctrl+C)">⧉ Копировать</button>
+        </div>
+      </div>
+      <div class="rb-group-label">Буфер обмена</div>
+    </div>
+
+    <!-- Шрифт -->
+    <div class="rb-group">
+      <div class="rb-group-tools">
+        <div class="rb-row">
+          <select class="rb-select" id="selFontFamily" title="Шрифт" style="width:110px">
+            <option value="Calibri">Calibri</option>
+            <option value="Arial">Arial</option>
+            <option value="Times New Roman">Times New Roman</option>
+            <option value="Courier New">Courier New</option>
+            <option value="Verdana">Verdana</option>
+            <option value="Georgia">Georgia</option>
+            <option value="Tahoma">Tahoma</option>
+          </select>
+          <select class="rb-select" id="selFontSize" title="Размер шрифта">
+            <option>8</option><option>9</option><option>10</option><option selected>11</option>
+            <option>12</option><option>14</option><option>16</option><option>18</option>
+            <option>20</option><option>24</option><option>28</option><option>36</option>
+          </select>
+        </div>
+        <div class="rb-row">
+          <button class="rb-btn" id="btnBold" title="Жирный (Ctrl+B)"><b>Ж</b></button>
+          <button class="rb-btn" id="btnItalic" title="Курсив (Ctrl+I)"><i>К</i></button>
+          <button class="rb-btn" id="btnUnderline" title="Подчёркнутый (Ctrl+U)"><u>Ч</u></button>
+          <div class="rb-dd" id="ddBorder">
+            <button class="rb-btn" title="Границы">▦ ▾</button>
+            <div class="rb-dd-menu">
+              <div class="rb-dd-item" data-border="all">▦ Все границы</div>
+              <div class="rb-dd-item" data-border="outer">▢ Внешние границы</div>
+              <div class="rb-dd-item" data-border="bottom">▁ Нижняя граница</div>
+              <div class="rb-dd-item" data-border="top">▔ Верхняя граница</div>
+              <div class="rb-dd-item" data-border="none">▢ Без границ</div>
+            </div>
+          </div>
+          <div class="rb-color-wrap" title="Цвет текста">
+            <span>A</span>
+            <div class="rb-color-bar" id="textColorBar" style="background:#000"></div>
+            <input type="color" id="inpTextColor" value="#000000">
+          </div>
+          <div class="rb-color-wrap" title="Цвет заливки">
+            <span style="font-size:13px">▩</span>
+            <div class="rb-color-bar" id="fillColorBar" style="background:#ffff00"></div>
+            <input type="color" id="inpFillColor" value="#ffff00">
+          </div>
+        </div>
+      </div>
+      <div class="rb-group-label">Шрифт</div>
+    </div>
+
+    <!-- Выравнивание -->
+    <div class="rb-group">
+      <div class="rb-group-tools">
+        <div class="rb-row">
+          <button class="rb-btn" id="btnVTop" title="По верхнему краю">⬆</button>
+          <button class="rb-btn" id="btnVMid" title="По середине">⬍</button>
+          <button class="rb-btn" id="btnVBot" title="По нижнему краю">⬇</button>
+          <button class="rb-btn" id="btnWrap" title="Перенос текста">↵ Перенос</button>
+        </div>
+        <div class="rb-row">
+          <button class="rb-btn" id="btnAlignL" title="По левому краю">⬅</button>
+          <button class="rb-btn" id="btnAlignC" title="По центру">☰</button>
+          <button class="rb-btn" id="btnAlignR" title="По правому краю">➡</button>
+          <button class="rb-btn" id="btnMerge" title="Объединить ячейки">⛶ Объединить</button>
+          <button class="rb-btn" id="btnUnmerge" title="Отменить объединение">⊟</button>
+        </div>
+      </div>
+      <div class="rb-group-label">Выравнивание</div>
+    </div>
+
+    <!-- Ячейки -->
+    <div class="rb-group">
+      <div class="rb-group-tools">
+        <div class="rb-col">
+          <button class="rb-btn" id="btnInsRowAbove" title="Вставить строку выше">⊞ Строка выше</button>
+          <button class="rb-btn" id="btnInsColLeft" title="Вставить столбец слева">⊞ Столбец слева</button>
+        </div>
+        <div class="rb-col">
+          <button class="rb-btn" id="btnDelRow" title="Удалить строки">⊟ Удалить строку</button>
+          <button class="rb-btn" id="btnDelCol" title="Удалить столбцы">⊟ Удалить столбец</button>
+        </div>
+      </div>
+      <div class="rb-group-label">Ячейки</div>
+    </div>
+
+    <!-- Редактирование -->
+    <div class="rb-group">
+      <div class="rb-group-tools">
+        <button class="rb-btn" id="btnUndo" title="Отменить (Ctrl+Z)">↩ Отменить</button>
+        <button class="rb-btn" id="btnRedo" title="Повторить (Ctrl+Y)">↪ Повторить</button>
+        <button class="rb-btn" id="btnClear" title="Очистить содержимое">🧹 Очистить</button>
+      </div>
+      <div class="rb-group-label">Редактирование</div>
+    </div>
   </div>
-  <div class="rb-color-wrap rb-btn" title="Цвет заливки">
-    <span style="font-size:14px">▩</span>
-    <div class="rb-color-bar" id="fillColorBar" style="background:#ffff00"></div>
-    <input type="color" id="inpFillColor" value="#ffff00">
+
+  <!-- ВСТАВКА -->
+  <div class="ribbon-panel" data-tab="insert">
+    <div class="rb-group">
+      <div class="rb-group-tools">
+        <div class="rb-col">
+          <button class="rb-btn" id="btnInsRowAbove2" title="Вставить строку выше">⊞ Строка выше</button>
+          <button class="rb-btn" id="btnInsRowBelow" title="Вставить строку ниже">⊞ Строка ниже</button>
+        </div>
+        <div class="rb-col">
+          <button class="rb-btn" id="btnInsColLeft2" title="Вставить столбец слева">⊞ Столбец слева</button>
+          <button class="rb-btn" id="btnInsColRight" title="Вставить столбец справа">⊞ Столбец справа</button>
+        </div>
+      </div>
+      <div class="rb-group-label">Строки и столбцы</div>
+    </div>
+    <div class="rb-group">
+      <div class="rb-group-tools">
+        <button class="rb-btn big" id="btnFx" title="Вставить формулу"><span class="ico">ƒx</span>Функция</button>
+        <button class="rb-btn big" id="btnComment" title="Вставить примечание"><span class="ico">💬</span>Примечание</button>
+      </div>
+      <div class="rb-group-label">Вставка</div>
+    </div>
   </div>
-  <div class="rb-sep"></div>
-  <button class="rb-btn" id="btnAlignL" title="По левому краю">⬅</button>
-  <button class="rb-btn" id="btnAlignC" title="По центру">☰</button>
-  <button class="rb-btn" id="btnAlignR" title="По правому краю">➡</button>
+
+  <!-- ФОРМУЛЫ -->
+  <div class="ribbon-panel" data-tab="formulas">
+    <div class="rb-group">
+      <div class="rb-group-tools">
+        <button class="rb-btn big" id="btnSum" title="Сумма выделенного диапазона"><span class="ico">Σ</span>Сумма</button>
+      </div>
+      <div class="rb-group-label">Автосумма</div>
+    </div>
+    <div class="rb-group">
+      <div class="rb-group-tools">
+        <div class="rb-col">
+          <button class="rb-btn" data-fn="AVERAGE" title="Среднее значение">СРЗНАЧ</button>
+          <button class="rb-btn" data-fn="COUNT" title="Количество чисел">СЧЁТ</button>
+        </div>
+        <div class="rb-col">
+          <button class="rb-btn" data-fn="MAX" title="Максимум">МАКС</button>
+          <button class="rb-btn" data-fn="MIN" title="Минимум">МИН</button>
+        </div>
+        <div class="rb-col">
+          <button class="rb-btn" id="btnIf" title="Условие ЕСЛИ">ЕСЛИ</button>
+          <button class="rb-btn" id="btnFx2" title="Другая функция">ƒx Другая</button>
+        </div>
+      </div>
+      <div class="rb-group-label">Библиотека функций</div>
+    </div>
+  </div>
+
+  <!-- ДАННЫЕ -->
+  <div class="ribbon-panel" data-tab="data">
+    <div class="rb-group">
+      <div class="rb-group-tools">
+        <button class="rb-btn big" id="btnSortAsc" title="Сортировать по возрастанию"><span class="ico">↑</span>А→Я</button>
+        <button class="rb-btn big" id="btnSortDesc" title="Сортировать по убыванию"><span class="ico">↓</span>Я→А</button>
+      </div>
+      <div class="rb-group-label">Сортировка</div>
+    </div>
+    <div class="rb-group">
+      <div class="rb-group-tools">
+        <input class="rb-select" id="searchInput" placeholder="Найти..." style="width:140px">
+        <button class="rb-btn" id="btnSearch" title="Найти">🔍</button>
+        <button class="rb-btn" id="btnSearchClear" title="Сбросить поиск">✕</button>
+      </div>
+      <div class="rb-group-label">Поиск</div>
+    </div>
+    <div class="rb-group">
+      <div class="rb-group-tools">
+        <div class="rb-col">
+          <button class="rb-btn" id="btnHideCol" title="Скрыть столбцы">⊠ Скрыть столбец</button>
+          <button class="rb-btn" id="btnHideRow" title="Скрыть строки">⊠ Скрыть строку</button>
+        </div>
+        <button class="rb-btn" id="btnShowAll" title="Показать всё">⊡ Показать всё</button>
+      </div>
+      <div class="rb-group-label">Скрыть / показать</div>
+    </div>
+  </div>
+
+  <!-- ВИД -->
+  <div class="ribbon-panel" data-tab="view">
+    <div class="rb-group">
+      <div class="rb-group-tools">
+        <div class="rb-col">
+          <button class="rb-btn" id="btnFreeze" title="Закрепить столбцы слева от выделения">❄ Закрепить столбцы</button>
+          <button class="rb-btn" id="btnUnfreeze" title="Снять закрепление">❄ Снять закрепление</button>
+        </div>
+      </div>
+      <div class="rb-group-label">Закрепление</div>
+    </div>
+    <div class="rb-group">
+      <div class="rb-group-tools">
+        <button class="rb-btn" id="btnGridToggle" title="Показать / скрыть сетку">▦ Сетка</button>
+      </div>
+      <div class="rb-group-label">Показать</div>
+    </div>
+    <div class="rb-group">
+      <div class="rb-group-tools">
+        <button class="rb-btn" id="btnZoomOut" title="Уменьшить">➖</button>
+        <span id="zoomLabel" style="font-size:12px; min-width:42px; text-align:center">100%</span>
+        <button class="rb-btn" id="btnZoomIn" title="Увеличить">➕</button>
+      </div>
+      <div class="rb-group-label">Масштаб</div>
+    </div>
+  </div>
+</div>
+
+<!-- Formula bar -->
+<div id="formula-bar">
+  <input id="nameBox" value="A1" title="Имя ячейки" readonly>
+  <span id="fxLabel">ƒx</span>
+  <input id="formulaInput" placeholder="" title="Содержимое ячейки">
 </div>
 
 <!-- Sheet tabs -->
@@ -167,27 +399,34 @@
   const user = getCurrentUser();
   if (user?.is_admin) document.getElementById("downloadBtn").style.display = "";
 
-  const params   = new URLSearchParams(location.search);
-  const fileId   = params.get("file_id");
+  const params = new URLSearchParams(location.search);
+  const fileId = params.get("file_id");
   if (!fileId) { location.href = "/dashboard"; throw new Error("no file_id"); }
 
-  /* ── State ─────────────────────────────────────────────────── */
-  let workbook         = null;
-  let currentSheetName = null;
-  let jspInstance      = null;
-  let isDirty          = false;
-  let applyingRemote   = false;
-  let sel              = null;  // {x1,y1,x2,y2}
+  /* ── State ── */
+  let workbook = null, currentSheetName = null, jspInstance = null;
+  let isDirty = false, applyingRemote = false;
+  let sel = null;                 // {x1,y1,x2,y2}
   let originalFilename = "";
+  let freezeCols = 0, zoom = 100, gridOn = true;
 
-  /* ── Helpers ─────────────────────────────────────────────────── */
+  /* ── Helpers ── */
   function colLetter(n) {
     let s = "", x = n + 1;
     while (x > 0) { const r = (x - 1) % 26; s = String.fromCharCode(65 + r) + s; x = Math.floor((x - 1) / 26); }
     return s;
   }
   function cellName(c, r) { return colLetter(c) + (r + 1); }
-
+  function rangeName() {
+    if (!sel) return "";
+    return cellName(sel.x1, sel.y1) + (sel.x2 !== sel.x1 || sel.y2 !== sel.y1 ? ":" + cellName(sel.x2, sel.y2) : "");
+  }
+  function selCells() {
+    if (!sel) return [];
+    const out = [];
+    for (let r = sel.y1; r <= sel.y2; r++) for (let c = sel.x1; c <= sel.x2; c++) out.push(cellName(c, r));
+    return out;
+  }
   function padAoa(aoa, rows, cols) {
     const out = [];
     for (let r = 0; r < rows; r++) {
@@ -197,14 +436,14 @@
     return out;
   }
 
-  /* Convert xlsx cell style → CSS string */
+  /* xlsx cell style → CSS */
   function xlsxStyleToCSS(s) {
     if (!s) return "";
     const p = [];
     const f = s.font;
     if (f) {
-      if (f.bold)    p.push("font-weight:bold");
-      if (f.italic)  p.push("font-style:italic");
+      if (f.bold) p.push("font-weight:bold");
+      if (f.italic) p.push("font-style:italic");
       if (f.underline) p.push("text-decoration:underline");
       if (f.sz && f.sz !== 11) p.push(`font-size:${Math.round(f.sz * 96 / 72)}px`);
       if (f.color?.rgb) {
@@ -223,8 +462,6 @@
     if (a?.wrapText) p.push("white-space:pre-wrap");
     return p.join(";");
   }
-
-  /* Build {cellAddr: cssStr} map from a sheet */
   function buildStyleMap(ws) {
     const map = {};
     if (!ws["!ref"]) return map;
@@ -238,9 +475,8 @@
     return map;
   }
 
-  /* ── WebSocket ─────────────────────────────────────────────── */
+  /* ── WebSocket (collab) ── */
   let ws = null, wsTimer = null;
-
   function connectWS() {
     const token = localStorage.getItem("access_token");
     if (!token) return;
@@ -260,21 +496,14 @@
       }
     };
   }
-
-  function setWsStatus(text, color) {
-    const el = document.getElementById("wsStatus");
-    el.textContent = text; el.style.color = color;
-  }
-  function renderPresence(users) {
-    const el = document.getElementById("onlineUsers");
-    el.textContent = users.length > 1 ? "· " + users.join(", ") : "";
-  }
+  function setWsStatus(text, color) { const el = document.getElementById("wsStatus"); el.textContent = text; el.style.color = color; }
+  function renderPresence(users) { document.getElementById("onlineUsers").textContent = users.length > 1 ? "· " + users.join(", ") : ""; }
   function sendCell(row, col, value) {
     if (ws?.readyState === WebSocket.OPEN && !applyingRemote)
       ws.send(JSON.stringify({type:"cell", sheet:currentSheetName, row, col, value}));
   }
 
-  /* ── Dirty / saving badges ─────────────────────────────────── */
+  /* ── Dirty / saving badges ── */
   function markDirty() {
     isDirty = true;
     document.getElementById("dirtyBadge").style.display = "inline-block";
@@ -288,29 +517,22 @@
     setTimeout(() => { s.style.display = "none"; }, 2500);
   }
 
-  /* ── Sheet init ─────────────────────────────────────────────── */
-  const RIBBON_H  = 40;
-  const NAV_H     = 40;
-  const TABS_H    = 30;
-  const TABLE_H   = `calc(100vh - ${NAV_H + RIBBON_H + TABS_H}px)`;
+  /* ── Sheet init ── */
+  const NAV_H = 40, RTABS_H = 30, RIBBON_H = 78, FBAR_H = 26, TABS_H = 30;
+  const TABLE_H = `calc(100vh - ${NAV_H + RTABS_H + RIBBON_H + FBAR_H + TABS_H}px)`;
 
   function initSheet(name) {
-    if (jspInstance) {
-      try { jspInstance.destroy(); } catch {}
-      jspInstance = null;
-    }
+    if (jspInstance) { try { jspInstance.destroy(); } catch {} jspInstance = null; }
     const container = document.getElementById("spreadsheet");
     container.innerHTML = "";
 
-    const ws = workbook.Sheets[name];
-    const aoa = XLSX.utils.sheet_to_json(ws, {header: 1, defval: ""});
-
+    const sheet = workbook.Sheets[name];
+    const aoa = XLSX.utils.sheet_to_json(sheet, {header: 1, defval: ""});
     const numDataCols = aoa.reduce((m, r) => Math.max(m, r.length), 0);
     const minCols = Math.max(numDataCols, 10);
     const minRows = Math.max(aoa.length, 50);
 
-    /* Column widths from xlsx */
-    const rawCols = ws["!cols"] || [];
+    const rawCols = sheet["!cols"] || [];
     const columns = Array.from({length: minCols}, (_, i) => {
       const col = rawCols[i];
       if (!col) return {width: 80};
@@ -318,8 +540,7 @@
       return {width: Math.max(px, 20)};
     });
 
-    /* Row heights from xlsx */
-    const rawRows = ws["!rows"] || [];
+    const rawRows = sheet["!rows"] || [];
     const rows = {};
     rawRows.forEach((row, i) => {
       if (!row) return;
@@ -327,58 +548,64 @@
       if (h > 0) rows[i] = {height: h};
     });
 
-    /* Cell styles from xlsx */
-    const style = buildStyleMap(ws);
-
+    const style = buildStyleMap(sheet);
     const data = padAoa(aoa, minRows, minCols);
 
-    jspInstance = jspreadsheet(container, {
-      data,
-      columns,
-      rows,
-      style,
+    const config = {
+      data, columns, rows, style,
       minDimensions: [minCols, minRows],
-      tableWidth:  "100%",
-      tableHeight: TABLE_H,
-      tableOverflow: true,
-      onchange: (el, cell, col, row, value) => {
-        if (!applyingRemote) { markDirty(); sendCell(row, col, value); }
-      },
-      onselection: (el, x1, y1, x2, y2) => { sel = {x1, y1, x2, y2}; },
-      allowInsertColumn: true,
-      allowInsertRow:    true,
-      allowDeleteColumn: true,
-      allowDeleteRow:    true,
-      columnDrag:  false,
-      rowDrag:     false,
-    });
+      tableWidth: "100%", tableHeight: TABLE_H, tableOverflow: true,
+      onchange: (el, cell, col, row, value) => { if (!applyingRemote) { markDirty(); sendCell(row, col, value); } },
+      onselection: (el, x1, y1, x2, y2) => { sel = {x1, y1, x2, y2}; updateFormulaBar(); },
+      allowInsertColumn: true, allowInsertRow: true, allowDeleteColumn: true, allowDeleteRow: true,
+      columnDrag: false, rowDrag: false,
+    };
+    if (freezeCols > 0) config.freezeColumns = freezeCols;
+
+    jspInstance = jspreadsheet(container, config);
+    applyZoom();
+    container.classList.toggle("no-grid", !gridOn);
   }
 
-  /* ── Sheet switching ─────────────────────────────────────────── */
+  function reinitCurrent() { syncToWorkbook(); initSheet(currentSheetName); }
+
+  /* ── Sheet switching ── */
   function syncToWorkbook() {
     if (!jspInstance || !currentSheetName) return;
     const data = jspInstance.getData();
     workbook.Sheets[currentSheetName] = XLSX.utils.aoa_to_sheet(data);
   }
-
   function switchSheet(name) {
-    if (currentSheetName && isDirty) syncToWorkbook();
-    currentSheetName = name;
+    if (currentSheetName) syncToWorkbook();
+    currentSheetName = name; freezeCols = 0;
     renderSheetTabs();
     initSheet(name);
   }
-
   function renderSheetTabs() {
     const bar = document.getElementById("sheet-tabs-bar");
     bar.innerHTML = workbook.SheetNames.map(n =>
       `<button class="sh-tab${n===currentSheetName?" active":""}" data-name="${escAttr(n)}">${escHtml(n)}</button>`
     ).join("");
-    bar.querySelectorAll(".sh-tab").forEach(btn =>
-      btn.addEventListener("click", () => switchSheet(btn.dataset.name))
-    );
+    bar.querySelectorAll(".sh-tab").forEach(btn => btn.addEventListener("click", () => switchSheet(btn.dataset.name)));
   }
 
-  /* ── Load ────────────────────────────────────────────────────── */
+  /* ── Formula bar ── */
+  function updateFormulaBar() {
+    if (!jspInstance || !sel) return;
+    document.getElementById("nameBox").value = rangeName();
+    let v = "";
+    try { v = jspInstance.getValueFromCoords(sel.x1, sel.y1); } catch {}
+    document.getElementById("formulaInput").value = (v === null || v === undefined) ? "" : v;
+  }
+  document.getElementById("formulaInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && jspInstance && sel) {
+      jspInstance.setValueFromCoords(sel.x1, sel.y1, e.target.value, true);
+      markDirty(); sendCell(sel.y1, sel.x1, e.target.value);
+      e.preventDefault();
+    }
+  });
+
+  /* ── Load ── */
   async function load() {
     const res = await apiFetch(`/files/${fileId}/content`);
     if (!res.ok) {
@@ -388,30 +615,21 @@
     }
     const data = await res.json();
     if (data.access_level !== "write") { location.href = `/viewer?file_id=${fileId}`; return; }
-
     originalFilename = data.filename;
     document.getElementById("fileName").textContent = data.filename;
     document.title = `${data.filename} — Редактор`;
-
     const bytes = Uint8Array.from(atob(data.content), c => c.charCodeAt(0));
     workbook = XLSX.read(bytes, {type: "array", cellStyles: true});
-
     switchSheet(workbook.SheetNames[0]);
     connectWS();
   }
 
-  /* ── Save ────────────────────────────────────────────────────── */
-  /* Chunked base64 — spreading a large Uint8Array into String.fromCharCode
-     overflows the call stack on big files, so encode in 8 KB chunks. */
+  /* ── Save ── */
   function bytesToBase64(bytes) {
-    let bin = "";
-    const chunk = 0x8000;
-    for (let i = 0; i < bytes.length; i += chunk) {
-      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
-    }
+    let bin = ""; const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
     return btoa(bin);
   }
-
   async function saveFile() {
     syncToWorkbook();
     const btn = document.getElementById("saveBtn");
@@ -430,7 +648,6 @@
       showError("Ошибка сохранения: " + (err?.message || err));
     } finally { btn.disabled = false; btn.textContent = "Сохранить"; }
   }
-
   document.getElementById("saveBtn").addEventListener("click", saveFile);
   document.getElementById("downloadBtn").addEventListener("click", async () => {
     const r = await apiFetch(`/files/${fileId}/download`);
@@ -441,58 +658,188 @@
     URL.revokeObjectURL(url);
   });
 
-  /* ── Ribbon ──────────────────────────────────────────────────── */
-  function getSelection() {
-    if (!sel || !jspInstance) return [];
-    const cells = [];
-    for (let r = sel.y1; r <= sel.y2; r++)
-      for (let c = sel.x1; c <= sel.x2; c++) cells.push(cellName(c, r));
-    return cells;
-  }
+  /* ── Ribbon tab switching ── */
+  document.querySelectorAll(".rt-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".rt-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".ribbon-panel").forEach(p => p.classList.remove("active"));
+      tab.classList.add("active");
+      document.querySelector(`.ribbon-panel[data-tab="${tab.dataset.tab}"]`).classList.add("active");
+    });
+  });
 
+  /* ── Style helpers ── */
+  function need() { if (!jspInstance || !sel) { showError("Сначала выделите ячейки"); return false; } return true; }
   function applyStyle(prop, val) {
-    if (!jspInstance || !sel) return;
+    if (!need()) return;
     const styles = {};
-    getSelection().forEach(cell => { styles[cell] = `${prop}:${val}`; });
+    selCells().forEach(c => { styles[c] = `${prop}:${val}`; });
     jspInstance.setStyle(styles);
     markDirty();
   }
-
-  function toggleStyle(prop, onVal, offVal = "initial") {
-    if (!jspInstance || !sel) return;
+  function setCellCSS(cell, css) { const o = {}; o[cell] = css; jspInstance.setStyle(o); }
+  function toggleStyle(prop, onVal, offVal, btnId) {
+    if (!need()) return;
     const cur = jspInstance.getStyle(cellName(sel.x1, sel.y1), prop);
-    applyStyle(prop, cur === onVal ? offVal : onVal);
-    document.getElementById({
-      "font-weight": "btnBold", "font-style": "btnItalic", "text-decoration": "btnUnderline"
-    }[prop])?.classList.toggle("on", cur !== onVal);
+    const turningOn = cur !== onVal;
+    applyStyle(prop, turningOn ? onVal : offVal);
+    if (btnId) document.getElementById(btnId)?.classList.toggle("on", turningOn);
   }
 
-  document.getElementById("btnUndo").addEventListener("click", () => jspInstance?.undo());
-  document.getElementById("btnRedo").addEventListener("click", () => jspInstance?.redo());
-  document.getElementById("btnBold").addEventListener("click", () => toggleStyle("font-weight", "bold"));
-  document.getElementById("btnItalic").addEventListener("click", () => toggleStyle("font-style", "italic"));
-  document.getElementById("btnUnderline").addEventListener("click", () => toggleStyle("text-decoration", "underline"));
-  document.getElementById("selFontSize").addEventListener("change", (e) => applyStyle("font-size", e.target.value));
-  document.getElementById("inpTextColor").addEventListener("input", (e) => {
-    applyStyle("color", e.target.value);
-    document.getElementById("textColorBar").style.background = e.target.value;
-  });
-  document.getElementById("inpFillColor").addEventListener("input", (e) => {
-    applyStyle("background-color", e.target.value);
-    document.getElementById("fillColorBar").style.background = e.target.value;
-  });
-  document.getElementById("btnAlignL").addEventListener("click", () => applyStyle("text-align", "left"));
-  document.getElementById("btnAlignC").addEventListener("click", () => applyStyle("text-align", "center"));
-  document.getElementById("btnAlignR").addEventListener("click", () => applyStyle("text-align", "right"));
+  /* ── Borders ── */
+  function applyBorder(kind) {
+    if (!need()) return;
+    const B = "1px solid #000";
+    for (let r = sel.y1; r <= sel.y2; r++)
+      for (let c = sel.x1; c <= sel.x2; c++) {
+        const cn = cellName(c, r);
+        if (kind === "all") setCellCSS(cn, `border:${B}`);
+        else if (kind === "none") setCellCSS(cn, "border:1px solid transparent");
+        else if (kind === "bottom") setCellCSS(cn, `border-bottom:${B}`);
+        else if (kind === "top") setCellCSS(cn, `border-top:${B}`);
+        else if (kind === "outer") {
+          let s = "";
+          if (r === sel.y1) s += `border-top:${B};`;
+          if (r === sel.y2) s += `border-bottom:${B};`;
+          if (c === sel.x1) s += `border-left:${B};`;
+          if (c === sel.x2) s += `border-right:${B};`;
+          if (s) setCellCSS(cn, s);
+        }
+      }
+    markDirty();
+  }
 
-  /* ── Utils ───────────────────────────────────────────────────── */
+  /* ── Insert / delete / merge / clear ── */
+  function insRow(before) { if (!need()) return; jspInstance.insertRow(1, sel.y1, before); markDirty(); }
+  function insCol(before) { if (!need()) return; jspInstance.insertColumn(1, sel.x1, before); markDirty(); }
+  function delRows() { if (!need()) return; jspInstance.deleteRow(sel.y1, sel.y2 - sel.y1 + 1); markDirty(); }
+  function delCols() { if (!need()) return; jspInstance.deleteColumn(sel.x1, sel.x2 - sel.x1 + 1); markDirty(); }
+  function mergeSel() {
+    if (!need()) return;
+    const cs = sel.x2 - sel.x1 + 1, rs = sel.y2 - sel.y1 + 1;
+    if (cs > 1 || rs > 1) { try { jspInstance.setMerge(cellName(sel.x1, sel.y1), cs, rs); markDirty(); } catch (e) { showError("Не удалось объединить"); } }
+  }
+  function unmergeSel() { if (!need()) return; selCells().forEach(c => { try { jspInstance.removeMerge(c); } catch {} }); markDirty(); }
+  function clearSel() {
+    if (!need()) return;
+    for (let r = sel.y1; r <= sel.y2; r++) for (let c = sel.x1; c <= sel.x2; c++) jspInstance.setValueFromCoords(c, r, "", true);
+    markDirty();
+  }
+
+  /* ── Formulas ── */
+  function autoFunc(fn) {
+    if (!need()) return;
+    const range = cellName(sel.x1, sel.y1) + ":" + cellName(sel.x2, sel.y2);
+    const targetRow = sel.y2 + 1;
+    jspInstance.setValueFromCoords(sel.x1, targetRow, `=${fn}(${range})`, true);
+    markDirty();
+  }
+  function insertFormulaTemplate(tpl) {
+    if (!need()) return;
+    jspInstance.setValueFromCoords(sel.x1, sel.y1, tpl, true);
+    markDirty(); updateFormulaBar();
+  }
+
+  /* ── Sort / search / hide ── */
+  function sortCol(order) { if (!need()) return; jspInstance.orderBy(sel.x1, order); markDirty(); }
+  function doSearch() { const q = document.getElementById("searchInput").value; if (jspInstance) jspInstance.search(q); }
+  function clearSearch() { document.getElementById("searchInput").value = ""; if (jspInstance) jspInstance.resetSearch(); }
+  function hideCols() { if (!need()) return; for (let c = sel.x1; c <= sel.x2; c++) jspInstance.hideColumn(c); }
+  function hideRows() { if (!need()) return; for (let r = sel.y1; r <= sel.y2; r++) jspInstance.hideRow(r); }
+  function showAll() {
+    if (!jspInstance) return;
+    const data = jspInstance.getData();
+    const ncols = data[0] ? data[0].length : 0;
+    for (let c = 0; c < ncols; c++) jspInstance.showColumn(c);
+    for (let r = 0; r < data.length; r++) jspInstance.showRow(r);
+  }
+
+  /* ── View: freeze / grid / zoom ── */
+  function applyZoom() { const el = document.getElementById("spreadsheet"); el.style.zoom = (zoom / 100).toString(); }
+  function setZoom(z) { zoom = Math.max(50, Math.min(200, z)); document.getElementById("zoomLabel").textContent = zoom + "%"; applyZoom(); }
+  function freeze() { if (!sel) { showError("Выделите столбец"); return; } freezeCols = sel.x1; reinitCurrent(); }
+  function unfreeze() { freezeCols = 0; reinitCurrent(); }
+  function toggleGrid() { gridOn = !gridOn; document.getElementById("spreadsheet").classList.toggle("no-grid", !gridOn); }
+
+  /* ── Wire buttons ── */
+  const on = (id, fn) => document.getElementById(id)?.addEventListener("click", fn);
+
+  // Главная — буфер
+  on("btnCopy", () => { try { jspInstance.copy(); } catch {} });
+  on("btnCut", () => { try { jspInstance.copy(); clearSel(); } catch {} });
+  on("btnPaste", () => showError("Вставка: используйте Ctrl+V"));
+  // Главная — шрифт
+  on("btnBold", () => toggleStyle("font-weight", "bold", "normal", "btnBold"));
+  on("btnItalic", () => toggleStyle("font-style", "italic", "normal", "btnItalic"));
+  on("btnUnderline", () => toggleStyle("text-decoration", "underline", "none", "btnUnderline"));
+  document.getElementById("selFontFamily").addEventListener("change", e => applyStyle("font-family", e.target.value));
+  document.getElementById("selFontSize").addEventListener("change", e => applyStyle("font-size", e.target.value + "px"));
+  document.getElementById("inpTextColor").addEventListener("input", e => { applyStyle("color", e.target.value); document.getElementById("textColorBar").style.background = e.target.value; });
+  document.getElementById("inpFillColor").addEventListener("input", e => { applyStyle("background-color", e.target.value); document.getElementById("fillColorBar").style.background = e.target.value; });
+  // Главная — выравнивание
+  on("btnAlignL", () => applyStyle("text-align", "left"));
+  on("btnAlignC", () => applyStyle("text-align", "center"));
+  on("btnAlignR", () => applyStyle("text-align", "right"));
+  on("btnVTop", () => applyStyle("vertical-align", "top"));
+  on("btnVMid", () => applyStyle("vertical-align", "middle"));
+  on("btnVBot", () => applyStyle("vertical-align", "bottom"));
+  on("btnWrap", () => toggleStyle("white-space", "pre-wrap", "nowrap", "btnWrap"));
+  on("btnMerge", mergeSel);
+  on("btnUnmerge", unmergeSel);
+  // Главная — ячейки
+  on("btnInsRowAbove", () => insRow(true));
+  on("btnInsColLeft", () => insCol(true));
+  on("btnDelRow", delRows);
+  on("btnDelCol", delCols);
+  // Главная — редактирование
+  on("btnUndo", () => jspInstance?.undo());
+  on("btnRedo", () => jspInstance?.redo());
+  on("btnClear", clearSel);
+  // Border dropdown
+  const ddBorder = document.getElementById("ddBorder");
+  ddBorder.querySelector(".rb-btn").addEventListener("click", e => { e.stopPropagation(); ddBorder.classList.toggle("open"); });
+  ddBorder.querySelectorAll(".rb-dd-item").forEach(it => it.addEventListener("click", () => { applyBorder(it.dataset.border); ddBorder.classList.remove("open"); }));
+  document.addEventListener("click", () => ddBorder.classList.remove("open"));
+
+  // Вставка
+  on("btnInsRowAbove2", () => insRow(true));
+  on("btnInsRowBelow", () => insRow(false));
+  on("btnInsColLeft2", () => insCol(true));
+  on("btnInsColRight", () => insCol(false));
+  on("btnFx", () => insertFormulaTemplate("="));
+  on("btnComment", () => { if (!need()) return; const t = prompt("Текст примечания:"); if (t != null) { try { jspInstance.setComments(cellName(sel.x1, sel.y1), t); markDirty(); } catch {} } });
+
+  // Формулы
+  on("btnSum", () => autoFunc("SUM"));
+  document.querySelectorAll('[data-fn]').forEach(b => b.addEventListener("click", () => autoFunc(b.dataset.fn)));
+  on("btnIf", () => insertFormulaTemplate("=IF(,,)"));
+  on("btnFx2", () => insertFormulaTemplate("="));
+
+  // Данные
+  on("btnSortAsc", () => sortCol(0));
+  on("btnSortDesc", () => sortCol(1));
+  on("btnSearch", doSearch);
+  on("btnSearchClear", clearSearch);
+  document.getElementById("searchInput").addEventListener("keydown", e => { if (e.key === "Enter") doSearch(); });
+  on("btnHideCol", hideCols);
+  on("btnHideRow", hideRows);
+  on("btnShowAll", showAll);
+
+  // Вид
+  on("btnFreeze", freeze);
+  on("btnUnfreeze", unfreeze);
+  on("btnGridToggle", toggleGrid);
+  on("btnZoomIn", () => setZoom(zoom + 10));
+  on("btnZoomOut", () => setZoom(zoom - 10));
+
+  /* ── Utils ── */
   function showError(msg) {
     const el = document.getElementById("errorToast");
     el.textContent = msg; el.style.display = "block";
-    setTimeout(() => { el.style.display = "none"; }, 5000);
+    setTimeout(() => { el.style.display = "none"; }, 4000);
   }
   function escHtml(s) { return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
-  function escAttr(s) { return String(s).replace(/"/g,"&quot;"); }
+  function escAttr(s) { return String(s).replace(/"/g, "&quot;"); }
 
   window.addEventListener("beforeunload", e => { if (isDirty) e.preventDefault(); });
 
