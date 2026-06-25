@@ -1,6 +1,6 @@
 import io
 import uuid
-from typing import Optional
+from typing import List, Optional
 
 import openpyxl
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
@@ -22,7 +22,7 @@ router = APIRouter()
 
 # ── Users ──────────────────────────────────────────────────────────────────────
 
-@router.get("/users", response_model=list[UserOut])
+@router.get("/users", response_model=List[UserOut])
 def list_users(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     return db.query(User).all()
 
@@ -105,7 +105,7 @@ def delete_user(
 
 # ── Files ──────────────────────────────────────────────────────────────────────
 
-@router.get("/files", response_model=list[ExcelFileOut])
+@router.get("/files", response_model=List[ExcelFileOut])
 def list_all_files(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     return db.query(ExcelFile).all()
 
@@ -171,7 +171,7 @@ def delete_file(
 
 # ── Permissions ────────────────────────────────────────────────────────────────
 
-@router.get("/files/{file_id}/permissions", response_model=list[PermissionWithUser])
+@router.get("/files/{file_id}/permissions", response_model=List[PermissionWithUser])
 def get_permissions(
     file_id: int,
     admin: User = Depends(require_admin),

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -18,7 +18,7 @@ class AuditLogOut(BaseModel):
 
 
 class AuditLogPage(BaseModel):
-    items: list[AuditLogOut]
+    items: List[AuditLogOut]
     total: int
     page: int
     limit: int

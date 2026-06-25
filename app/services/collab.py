@@ -1,5 +1,6 @@
 import asyncio
 from collections import defaultdict
+from typing import Dict, List
 
 from fastapi import WebSocket
 
@@ -15,7 +16,7 @@ class _ConnectedUser:
 
 class CollabManager:
     def __init__(self):
-        self._rooms: dict[int, list[_ConnectedUser]] = defaultdict(list)
+        self._rooms: Dict[int, List[_ConnectedUser]] = defaultdict(list)
         self._lock = asyncio.Lock()
 
     async def connect(self, file_id: int, ws: WebSocket, user_id: int, full_name: str) -> None:

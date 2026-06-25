@@ -1,5 +1,6 @@
 import base64
 import io
+from typing import List
 
 import openpyxl
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -34,7 +35,7 @@ def _get_permission(db: Session, user: User, file_id: int) -> FilePermission:
     return perm
 
 
-@router.get("", response_model=list[ExcelFileWithAccess])
+@router.get("", response_model=List[ExcelFileWithAccess])
 def list_files(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

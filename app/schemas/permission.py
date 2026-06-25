@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -13,7 +14,7 @@ class PermissionOut(BaseModel):
     user_id: int
     file_id: int
     access_level: str
-    granted_by: int | None
+    granted_by: Optional[int]
     granted_at: datetime
 
     model_config = {"from_attributes": True}
