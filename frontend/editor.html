@@ -401,16 +401,33 @@
   }
 
   /* ── Save ────────────────────────────────────────────────────── */
+  /* Chunked base64 — spreading a large Uint8Array into String.fromCharCode
+     overflows the call stack on big files, so encode in 8 KB chunks. */
+  function bytesToBase64(bytes) {
+    let bin = "";
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(bin);
+  }
+
   async function saveFile() {
     syncToWorkbook();
     const btn = document.getElementById("saveBtn");
     btn.disabled = true; btn.textContent = "Сохранение...";
     try {
       const buf = XLSX.write(workbook, {type: "array", bookType: "xlsx"});
-      const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      const b64 = bytesToBase64(new Uint8Array(buf));
       const res = await apiFetch(`/files/${fileId}/save`, {method:"POST", body:{content:b64}});
-      if (!res.ok) { const j = await res.json(); showError(j.detail || "Ошибка сохранения"); return; }
+      if (!res.ok) {
+        let detail = "Ошибка сохранения";
+        try { const j = await res.json(); if (j.detail) detail = j.detail; } catch {}
+        showError(detail); return;
+      }
       markSaved();
+    } catch (err) {
+      showError("Ошибка сохранения: " + (err?.message || err));
     } finally { btn.disabled = false; btn.textContent = "Сохранить"; }
   }
 
