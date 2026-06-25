@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Excel Manager — Просмотр</title>
   <link rel="stylesheet" href="/static/css/app.css">
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <script src="/static/vendor/xlsx.full.min.js"></script>
   <style>
     #sheetContainer { overflow: auto; background: #fff; }
     #sheetContainer table { border-collapse: collapse; font-size: .85rem; min-width: 100%; }
@@ -20,7 +20,7 @@
 <nav>
   <span class="brand">Excel Manager</span>
   <a href="/dashboard">← Назад</a>
-  <button class="nav-btn" id="downloadBtn">⬇ Скачать</button>
+  <button class="nav-btn" id="downloadBtn" style="display:none">⬇ Скачать</button>
 </nav>
 
 <div class="editor-toolbar">
@@ -33,8 +33,10 @@
 <div id="errorMsg" class="alert alert-error container" style="display:none"></div>
 
 <script type="module">
-  import { apiFetch, requireAuth } from "/static/js/api.js";
+  import { apiFetch, requireAuth, getCurrentUser } from "/static/js/api.js";
   if (!requireAuth()) throw new Error("not auth");
+
+  const currentUser = getCurrentUser();
 
   const params = new URLSearchParams(location.search);
   const fileId = params.get("file_id");
@@ -54,14 +56,19 @@
     renderSheetTabs();
     renderSheet(workbook.SheetNames[0]);
 
-    document.getElementById("downloadBtn").addEventListener("click", async () => {
-      const dlRes = await apiFetch(`/files/${fileId}/download`);
-      const blob = await dlRes.blob();
-      const url = URL.createObjectURL(blob);
-      const a = Object.assign(document.createElement("a"), { href: url, download: data.filename });
-      a.click();
-      URL.revokeObjectURL(url);
-    });
+    if (currentUser && currentUser.is_admin) {
+      const dlBtn = document.getElementById("downloadBtn");
+      dlBtn.style.display = "";
+      dlBtn.addEventListener("click", async () => {
+        const dlRes = await apiFetch(`/files/${fileId}/download`);
+        if (!dlRes.ok) { showError("Ошибка скачивания"); return; }
+        const blob = await dlRes.blob();
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement("a"), { href: url, download: data.filename });
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    }
   }
 
   function renderSheetTabs() {
