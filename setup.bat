@@ -5,10 +5,10 @@ REM ============================================================
 cd /d "%~dp0"
 
 echo [1/3] Creating Python virtual environment...
-py -3.8 -m venv venv 2>nul || python -m venv venv
+py -3 -m venv venv 2>nul || python -m venv venv
 if not exist venv\Scripts\python.exe (
   echo ERROR: failed to create virtual environment.
-  echo Make sure Python 3.8 is installed and on PATH.
+  echo Make sure Python 3 is installed and on PATH.
   pause
   exit /b 1
 )
