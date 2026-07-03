@@ -436,43 +436,98 @@
     return out;
   }
 
-  /* xlsx cell style → CSS */
+  /* xlsx cell style → CSS.
+     Note: the vendored SheetJS Community Edition only exposes fill color
+     (flat on cell.s: patternType/fgColor/bgColor) — fonts, borders and
+     alignment are a Pro-only feature and are never present here. */
   function xlsxStyleToCSS(s) {
     if (!s) return "";
     const p = [];
-    const f = s.font;
-    if (f) {
-      if (f.bold) p.push("font-weight:bold");
-      if (f.italic) p.push("font-style:italic");
-      if (f.underline) p.push("text-decoration:underline");
-      if (f.sz && f.sz !== 11) p.push(`font-size:${Math.round(f.sz * 96 / 72)}px`);
-      if (f.color?.rgb) {
-        const rgb = f.color.rgb.replace(/^FF/i, "").padStart(6, "0");
-        if (!/^0{6}$/i.test(rgb)) p.push(`color:#${rgb}`);
-      }
-    }
-    const fill = s.fill;
-    if (fill?.patternType === "solid" && fill.fgColor?.rgb) {
-      const rgb = fill.fgColor.rgb.replace(/^FF/i, "").padStart(6, "0");
+    if (s.patternType === "solid" && s.fgColor?.rgb) {
+      const rgb = s.fgColor.rgb.slice(-6);
       if (!/^(F{6}|0{6})$/i.test(rgb)) p.push(`background-color:#${rgb}`);
     }
-    const a = s.alignment;
-    if (a?.horizontal === "center") p.push("text-align:center");
-    else if (a?.horizontal === "right") p.push("text-align:right");
-    if (a?.wrapText) p.push("white-space:pre-wrap");
     return p.join(";");
   }
-  function buildStyleMap(ws) {
-    const map = {};
-    if (!ws["!ref"]) return map;
+
+  /* ── Number/date format → display text (keeps underlying value numeric for formulas) ── */
+  const RU_MONTHS_SHORT = ["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
+  function stripFmtLiterals(fmt) {
+    return String(fmt || "").replace(/\[[^\]]*\]/g, "").replace(/"[^"]*"/g, "");
+  }
+  function formatDateCell(date, fmt) {
+    const f = stripFmtLiterals(fmt);
+    const hasDay = /d/i.test(f), hasMonth = /m/i.test(f), hasYear = /y/i.test(f);
+    const dd = String(date.getUTCDate()).padStart(2, "0");
+    const mm = date.getUTCMonth();
+    const yyyy = date.getUTCFullYear();
+    if (hasMonth && hasYear && !hasDay) return `${RU_MONTHS_SHORT[mm]}.${String(yyyy).slice(-2)}`;
+    if (hasMonth && !hasYear && !hasDay) return RU_MONTHS_SHORT[mm];
+    return `${dd}.${String(mm + 1).padStart(2, "0")}.${yyyy}`;
+  }
+  function numFmtInfo(fmt) {
+    const f = stripFmtLiterals(fmt);
+    const percent = f.includes("%");
+    const grouped = f.includes(",");
+    const decMatch = /\.(0+)/.exec(f);
+    const decimals = decMatch ? decMatch[1].length : 0;
+    if (!percent && !grouped && decimals === 0) return null;
+    return { percent, grouped, decimals };
+  }
+  function applyNumFmtDisplay(x, y, info) {
+    if (!jspInstance) return;
+    const raw = jspInstance.getValueFromCoords(x, y);
+    if (typeof raw !== "number" || Number.isNaN(raw)) return;
+    const cellEl = jspInstance.getCellFromCoords(x, y);
+    if (!cellEl) return;
+    const opts = { minimumFractionDigits: info.decimals, maximumFractionDigits: info.decimals, useGrouping: info.grouped };
+    cellEl.innerText = info.percent
+      ? (raw * 100).toLocaleString("ru-RU", opts) + "%"
+      : raw.toLocaleString("ru-RU", opts);
+  }
+
+  /* ── Read a worksheet into {aoa, style, numFmt} in one pass ── */
+  function buildSheetRenderData(ws) {
+    const result = { aoa: [], style: {}, numFmt: {} };
+    if (!ws["!ref"]) return result;
     const range = XLSX.utils.decode_range(ws["!ref"]);
-    for (let r = range.s.r; r <= range.e.r; r++)
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      const row = [];
       for (let c = range.s.c; c <= range.e.c; c++) {
         const addr = XLSX.utils.encode_cell({r, c});
         const cell = ws[addr];
-        if (cell?.s) { const css = xlsxStyleToCSS(cell.s); if (css) map[addr] = css; }
+        if (!cell) { row.push(""); continue; }
+        if (cell.s) { const css = xlsxStyleToCSS(cell.s); if (css) result.style[addr] = css; }
+        if (cell.t === "d" && cell.v instanceof Date) {
+          row.push(formatDateCell(cell.v, cell.z));
+        } else if (cell.t === "n" && cell.z && cell.z !== "General" && cell.z !== "@") {
+          row.push(cell.v);
+          const info = numFmtInfo(cell.z);
+          if (info) result.numFmt[addr] = info;
+        } else {
+          row.push(cell.v !== undefined ? cell.v : "");
+        }
       }
-    return map;
+      result.aoa.push(row);
+    }
+    return result;
+  }
+
+  /* ── Merged cells ↔ jspreadsheet mergeCells config ── */
+  function parseMerges(ws) {
+    const cfg = {};
+    (ws["!merges"] || []).forEach(m => {
+      const colspan = m.e.c - m.s.c + 1, rowspan = m.e.r - m.s.r + 1;
+      if (colspan > 1 || rowspan > 1) cfg[XLSX.utils.encode_cell({r: m.s.r, c: m.s.c})] = [colspan, rowspan];
+    });
+    return cfg;
+  }
+  function mergesToXlsx(mergeCells) {
+    return Object.keys(mergeCells || {}).map(addr => {
+      const [colspan, rowspan] = mergeCells[addr];
+      const dec = XLSX.utils.decode_cell(addr);
+      return { s: {r: dec.r, c: dec.c}, e: {r: dec.r + rowspan - 1, c: dec.c + colspan - 1} };
+    });
   }
 
   /* ── WebSocket (collab) ── */
@@ -521,13 +576,14 @@
   const NAV_H = 40, RTABS_H = 30, RIBBON_H = 78, FBAR_H = 26, TABS_H = 30;
   const TABLE_H = `calc(100vh - ${NAV_H + RTABS_H + RIBBON_H + FBAR_H + TABS_H}px)`;
 
+  let loadingSheet = false;
   function initSheet(name) {
     if (jspInstance) { try { jspInstance.destroy(); } catch {} jspInstance = null; }
     const container = document.getElementById("spreadsheet");
     container.innerHTML = "";
 
     const sheet = workbook.Sheets[name];
-    const aoa = XLSX.utils.sheet_to_json(sheet, {header: 1, defval: ""});
+    const { aoa, style, numFmt } = buildSheetRenderData(sheet);
     const numDataCols = aoa.reduce((m, r) => Math.max(m, r.length), 0);
     const minCols = Math.max(numDataCols, 10);
     const minRows = Math.max(aoa.length, 50);
@@ -548,21 +604,34 @@
       if (h > 0) rows[i] = {height: h};
     });
 
-    const style = buildStyleMap(sheet);
+    const mergeCells = parseMerges(sheet);
     const data = padAoa(aoa, minRows, minCols);
 
     const config = {
-      data, columns, rows, style,
+      data, columns, rows, style, mergeCells,
       minDimensions: [minCols, minRows],
       tableWidth: "100%", tableHeight: TABLE_H, tableOverflow: true,
-      onchange: (el, cell, col, row, value) => { if (!applyingRemote) { markDirty(); sendCell(row, col, value); } },
+      onchange: (el, cell, col, row, value) => { if (!applyingRemote && !loadingSheet) { markDirty(); sendCell(row, col, value); } },
+      onafterchanges: (el, records) => {
+        if (loadingSheet) return;
+        (records || []).forEach(rec => {
+          const addr = cellName(rec.x, rec.y);
+          if (numFmt[addr]) applyNumFmtDisplay(rec.x, rec.y, numFmt[addr]);
+        });
+      },
       onselection: (el, x1, y1, x2, y2) => { sel = {x1, y1, x2, y2}; updateFormulaBar(); },
       allowInsertColumn: true, allowInsertRow: true, allowDeleteColumn: true, allowDeleteRow: true,
       columnDrag: false, rowDrag: false,
     };
     if (freezeCols > 0) config.freezeColumns = freezeCols;
 
+    loadingSheet = true;
     jspInstance = jspreadsheet(container, config);
+    Object.keys(numFmt).forEach(addr => {
+      const dec = XLSX.utils.decode_cell(addr);
+      applyNumFmtDisplay(dec.c, dec.r, numFmt[addr]);
+    });
+    loadingSheet = false;
     applyZoom();
     container.classList.toggle("no-grid", !gridOn);
   }
@@ -573,7 +642,10 @@
   function syncToWorkbook() {
     if (!jspInstance || !currentSheetName) return;
     const data = jspInstance.getData();
-    workbook.Sheets[currentSheetName] = XLSX.utils.aoa_to_sheet(data);
+    const newSheet = XLSX.utils.aoa_to_sheet(data);
+    const merges = mergesToXlsx(jspInstance.options.mergeCells);
+    if (merges.length) newSheet["!merges"] = merges;
+    workbook.Sheets[currentSheetName] = newSheet;
   }
   function switchSheet(name) {
     if (currentSheetName) syncToWorkbook();
@@ -619,7 +691,7 @@
     document.getElementById("fileName").textContent = data.filename;
     document.title = `${data.filename} — Редактор`;
     const bytes = Uint8Array.from(atob(data.content), c => c.charCodeAt(0));
-    workbook = XLSX.read(bytes, {type: "array", cellStyles: true});
+    workbook = XLSX.read(bytes, {type: "array", cellStyles: true, cellDates: true});
     switchSheet(workbook.SheetNames[0]);
     connectWS();
   }

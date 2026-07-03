@@ -52,7 +52,7 @@
     document.getElementById("fileName").textContent = data.filename;
     document.title = `${data.filename} — Просмотр`;
     const bytes = Uint8Array.from(atob(data.content), c => c.charCodeAt(0));
-    workbook = XLSX.read(bytes, { type: "array" });
+    workbook = XLSX.read(bytes, { type: "array", cellStyles: true, cellDates: true });
     renderSheetTabs();
     renderSheet(workbook.SheetNames[0]);
 
@@ -85,8 +85,67 @@
     currentSheet = name;
     document.querySelectorAll(".sheet-tab").forEach(b => b.classList.toggle("active", b.dataset.name === name));
     const ws = workbook.Sheets[name];
-    const html = XLSX.utils.sheet_to_html(ws, { editable: false });
+    const html = XLSX.utils.sheet_to_html(ws, { editable: false, id: "sheetTable" });
     document.getElementById("sheetContainer").innerHTML = html;
+    applyFills(ws);
+    applyNumberAndDateFormats(ws);
+  }
+
+  /* SheetJS Community Edition only exposes fill color (flat on cell.s), not fonts/borders. */
+  function applyFills(ws) {
+    Object.keys(ws).forEach(addr => {
+      if (addr[0] === "!") return;
+      const s = ws[addr]?.s;
+      if (s?.patternType !== "solid" || !s.fgColor?.rgb) return;
+      const rgb = s.fgColor.rgb.slice(-6);
+      if (/^(F{6}|0{6})$/i.test(rgb)) return;
+      const el = document.getElementById(`sheetTable-${addr}`);
+      if (el) el.style.backgroundColor = "#" + rgb;
+    });
+  }
+
+  /* Re-render numbers/dates with Russian-locale grouping and month names
+     (sheet_to_html's default .w text uses English months / comma grouping). */
+  const RU_MONTHS_SHORT = ["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
+  function stripFmtLiterals(fmt) {
+    return String(fmt || "").replace(/\[[^\]]*\]/g, "").replace(/"[^"]*"/g, "");
+  }
+  function formatDateCell(date, fmt) {
+    const f = stripFmtLiterals(fmt);
+    const hasDay = /d/i.test(f), hasMonth = /m/i.test(f), hasYear = /y/i.test(f);
+    const dd = String(date.getUTCDate()).padStart(2, "0");
+    const mm = date.getUTCMonth();
+    const yyyy = date.getUTCFullYear();
+    if (hasMonth && hasYear && !hasDay) return `${RU_MONTHS_SHORT[mm]}.${String(yyyy).slice(-2)}`;
+    if (hasMonth && !hasYear && !hasDay) return RU_MONTHS_SHORT[mm];
+    return `${dd}.${String(mm + 1).padStart(2, "0")}.${yyyy}`;
+  }
+  function numFmtInfo(fmt) {
+    const f = stripFmtLiterals(fmt);
+    const percent = f.includes("%");
+    const grouped = f.includes(",");
+    const decMatch = /\.(0+)/.exec(f);
+    const decimals = decMatch ? decMatch[1].length : 0;
+    if (!percent && !grouped && decimals === 0) return null;
+    return { percent, grouped, decimals };
+  }
+  function applyNumberAndDateFormats(ws) {
+    Object.keys(ws).forEach(addr => {
+      if (addr[0] === "!") return;
+      const cell = ws[addr];
+      const el = document.getElementById(`sheetTable-${addr}`);
+      if (!el) return;
+      if (cell.t === "d" && cell.v instanceof Date) {
+        el.textContent = formatDateCell(cell.v, cell.z);
+      } else if (cell.t === "n" && cell.z && cell.z !== "General" && cell.z !== "@") {
+        const info = numFmtInfo(cell.z);
+        if (!info) return;
+        const opts = { minimumFractionDigits: info.decimals, maximumFractionDigits: info.decimals, useGrouping: info.grouped };
+        el.textContent = info.percent
+          ? (cell.v * 100).toLocaleString("ru-RU", opts) + "%"
+          : cell.v.toLocaleString("ru-RU", opts);
+      }
+    });
   }
 
   function showError(msg) {
