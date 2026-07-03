@@ -254,6 +254,9 @@
           <button class="rb-btn" id="btnDelRow" title="Удалить строки">⊟ Удалить строку</button>
           <button class="rb-btn" id="btnDelCol" title="Удалить столбцы">⊟ Удалить столбец</button>
         </div>
+        <div class="rb-col">
+          <button class="rb-btn" id="btnAutoWidth" title="Автоподбор ширины столбцов">↔ Автоподбор ширины</button>
+        </div>
       </div>
       <div class="rb-group-label">Ячейки</div>
     </div>
@@ -411,6 +414,7 @@
   let originalFilename = "";
   let originalBytes = null;       // raw xlsx bytes, kept for direct-zip border extraction
   let freezeCols = 0, zoom = 100, gridOn = true;
+  let currentNumFmt = {};         // numFmt map for the sheet currently shown, reused by manual autofit
 
   /* ── Helpers ── */
   function colLetter(n) {
@@ -476,16 +480,57 @@
     if (!percent && !grouped && decimals === 0) return null;
     return { percent, grouped, decimals };
   }
+  function formatNumFmtText(raw, info) {
+    const opts = { minimumFractionDigits: info.decimals, maximumFractionDigits: info.decimals, useGrouping: info.grouped };
+    return info.percent
+      ? (raw * 100).toLocaleString("ru-RU", opts) + "%"
+      : raw.toLocaleString("ru-RU", opts);
+  }
   function applyNumFmtDisplay(x, y, info) {
     if (!jspInstance) return;
     const raw = jspInstance.getValueFromCoords(x, y);
     if (typeof raw !== "number" || Number.isNaN(raw)) return;
     const cellEl = jspInstance.getCellFromCoords(x, y);
     if (!cellEl) return;
-    const opts = { minimumFractionDigits: info.decimals, maximumFractionDigits: info.decimals, useGrouping: info.grouped };
-    cellEl.innerText = info.percent
-      ? (raw * 100).toLocaleString("ru-RU", opts) + "%"
-      : raw.toLocaleString("ru-RU", opts);
+    cellEl.innerText = formatNumFmtText(raw, info);
+  }
+
+  /* ── Auto column width so formatted numbers/dates never get clipped ── */
+  const AUTOWIDTH_PADDING = 26, AUTOWIDTH_MIN = 40, AUTOWIDTH_MAX = 400;
+  let measureCtx = null;
+  function measureTextWidth(text) {
+    if (!measureCtx) {
+      measureCtx = document.createElement("canvas").getContext("2d");
+      measureCtx.font = "14px 'Segoe UI', Arial, sans-serif";
+    }
+    return measureCtx.measureText(text).width;
+  }
+  function computeAutoWidths(aoa, numFmt, numCols) {
+    const maxW = new Array(numCols).fill(0);
+    for (let r = 0; r < aoa.length; r++) {
+      const row = aoa[r];
+      for (let c = 0; c < numCols; c++) {
+        let v = row[c];
+        if (v === "" || v === undefined || v === null) continue;
+        if (typeof v === "number") {
+          const info = numFmt[cellName(c, r)];
+          v = info ? formatNumFmtText(v, info) : String(v);
+        }
+        const w = measureTextWidth(String(v));
+        if (w > maxW[c]) maxW[c] = w;
+      }
+    }
+    return maxW;
+  }
+  function autoWidthAll() {
+    if (!jspInstance) return;
+    const data = jspInstance.getData();
+    const numCols = data.reduce((m, r) => Math.max(m, r.length), 0);
+    const autoW = computeAutoWidths(data, currentNumFmt, numCols);
+    for (let c = 0; c < numCols; c++) {
+      const needed = Math.ceil(autoW[c] || 0) + AUTOWIDTH_PADDING;
+      jspInstance.setWidth(c, Math.min(Math.max(needed, AUTOWIDTH_MIN), AUTOWIDTH_MAX));
+    }
   }
 
   /* ── Read a worksheet into {aoa, style, numFmt} in one pass ── */
@@ -588,6 +633,7 @@
 
     const sheet = workbook.Sheets[name];
     const { aoa, style, numFmt } = buildSheetRenderData(sheet);
+    currentNumFmt = numFmt;
     if (originalBytes) {
       const borders = await window.XlsxBorders.extract(originalBytes, name);
       if (myGen !== sheetLoadGen) return;
@@ -600,11 +646,12 @@
     const minRows = Math.max(aoa.length, 50);
 
     const rawCols = sheet["!cols"] || [];
+    const autoW = computeAutoWidths(aoa, numFmt, minCols);
     const columns = Array.from({length: minCols}, (_, i) => {
       const col = rawCols[i];
-      if (!col) return {width: 80};
-      const px = col.wpx || Math.round((col.wch || 8.43) * (col.MDW || 7));
-      return {width: Math.max(px, 20)};
+      const excelPx = col ? Math.max(col.wpx || Math.round((col.wch || 8.43) * (col.MDW || 7)), 20) : 80;
+      const needed = Math.ceil(autoW[i] || 0) + AUTOWIDTH_PADDING;
+      return {width: Math.min(Math.max(excelPx, needed, AUTOWIDTH_MIN), AUTOWIDTH_MAX)};
     });
 
     const rawRows = sheet["!rows"] || [];
@@ -875,6 +922,7 @@
   on("btnInsColLeft", () => insCol(true));
   on("btnDelRow", delRows);
   on("btnDelCol", delCols);
+  on("btnAutoWidth", autoWidthAll);
   // Главная — редактирование
   on("btnUndo", () => jspInstance?.undo());
   on("btnRedo", () => jspInstance?.redo());
