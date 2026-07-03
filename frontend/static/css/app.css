@@ -9,7 +9,7 @@ body {
 
 /* Nav */
 nav {
-  background: #1a56db;
+  background: #217346;
   color: #fff;
   padding: 0 1.5rem;
   height: 56px;
@@ -60,7 +60,7 @@ nav button.nav-btn:hover { background: rgba(255,255,255,.25); }
   border: 1px solid #d1d5db; border-radius: 6px;
   font-size: .95rem; outline: none; transition: border .15s;
 }
-.form-group input:focus, .form-group select:focus { border-color: #1a56db; }
+.form-group input:focus, .form-group select:focus { border-color: #217346; }
 
 /* Buttons */
 .btn {
@@ -69,8 +69,8 @@ nav button.nav-btn:hover { background: rgba(255,255,255,.25); }
   border: none; cursor: pointer; font-weight: 500; transition: opacity .15s;
 }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
-.btn-primary { background: #1a56db; color: #fff; }
-.btn-primary:hover:not(:disabled) { background: #1648c0; }
+.btn-primary { background: #217346; color: #fff; }
+.btn-primary:hover:not(:disabled) { background: #1a5c3a; }
 .btn-secondary { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
 .btn-secondary:hover:not(:disabled) { background: #e5e7eb; }
 .btn-danger { background: #dc2626; color: #fff; }
@@ -90,7 +90,7 @@ tr:hover td { background: #f9fafb; }
   display: inline-block; padding: .2rem .55rem; border-radius: 999px;
   font-size: .75rem; font-weight: 600;
 }
-.badge-read { background: #dbeafe; color: #1d4ed8; }
+.badge-read { background: #ccfbf1; color: #0f766e; }
 .badge-write { background: #d1fae5; color: #065f46; }
 .badge-admin { background: #fef3c7; color: #92400e; }
 .badge-inactive { background: #f3f4f6; color: #6b7280; }
@@ -102,7 +102,7 @@ tr:hover td { background: #f9fafb; }
   font-size: .9rem; cursor: pointer; color: #6b7280;
   border-bottom: 2px solid transparent; margin-bottom: -2px;
 }
-.tab-btn.active { color: #1a56db; border-bottom-color: #1a56db; font-weight: 600; }
+.tab-btn.active { color: #217346; border-bottom-color: #217346; font-weight: 600; }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 
@@ -153,7 +153,7 @@ tr:hover td { background: #f9fafb; }
   font-size: .85rem; cursor: pointer; white-space: nowrap;
   border-right: 1px solid #e5e7eb; color: #374151;
 }
-.sheet-tab.active { background: #fff; color: #1a56db; font-weight: 600; border-bottom: 2px solid #1a56db; }
+.sheet-tab.active { background: #fff; color: #217346; font-weight: 600; border-bottom: 2px solid #217346; }
 
 /* Spinner */
 .spinner {
