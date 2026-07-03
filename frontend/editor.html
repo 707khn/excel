@@ -415,6 +415,9 @@
   let originalBytes = null;       // raw xlsx bytes, kept for direct-zip border extraction
   let freezeCols = 0, zoom = 100, gridOn = true;
   let currentNumFmt = {};         // numFmt map for the sheet currently shown, reused by manual autofit
+  let originalSheetMeta = {};     // per-sheet {style,numFmt,mergeCells,cols,rows} snapshotted once at load,
+                                   // since re-deriving from workbook.Sheets after a sheet switch (which
+                                   // round-trips through aoa_to_sheet) would silently drop all of it
 
   /* ── Helpers ── */
   function colLetter(n) {
@@ -632,7 +635,13 @@
     container.innerHTML = "";
 
     const sheet = workbook.Sheets[name];
-    const { aoa, style, numFmt } = buildSheetRenderData(sheet);
+    const { aoa } = buildSheetRenderData(sheet);
+    // Style/numFmt/merges/cols/rows always come from the pristine snapshot taken at load() -
+    // workbook.Sheets[name] loses all of this the moment any sheet gets synced back via
+    // aoa_to_sheet (e.g. simply switching to another tab and back), even without an edit.
+    const meta = originalSheetMeta[name] || {};
+    const style = { ...(meta.style || {}) };
+    const numFmt = meta.numFmt || {};
     currentNumFmt = numFmt;
     if (originalBytes) {
       const borders = await window.XlsxBorders.extract(originalBytes, name);
@@ -645,7 +654,7 @@
     const minCols = Math.max(numDataCols, 10);
     const minRows = Math.max(aoa.length, 50);
 
-    const rawCols = sheet["!cols"] || [];
+    const rawCols = meta.cols || [];
     const autoW = computeAutoWidths(aoa, numFmt, minCols);
     const columns = Array.from({length: minCols}, (_, i) => {
       const col = rawCols[i];
@@ -654,7 +663,7 @@
       return {width: Math.min(Math.max(excelPx, needed, AUTOWIDTH_MIN), AUTOWIDTH_MAX)};
     });
 
-    const rawRows = sheet["!rows"] || [];
+    const rawRows = meta.rows || [];
     const rows = {};
     rawRows.forEach((row, i) => {
       if (!row) return;
@@ -662,7 +671,7 @@
       if (h > 0) rows[i] = {height: h};
     });
 
-    const mergeCells = parseMerges(sheet);
+    const mergeCells = { ...(meta.mergeCells || {}) }; // jspreadsheet mutates this object; never share the cached one
     const data = padAoa(aoa, minRows, minCols);
 
     const config = {
@@ -751,6 +760,12 @@
     const bytes = Uint8Array.from(atob(data.content), c => c.charCodeAt(0));
     originalBytes = bytes;
     workbook = XLSX.read(bytes, {type: "array", cellStyles: true, cellDates: true});
+    originalSheetMeta = {};
+    workbook.SheetNames.forEach(n => {
+      const ws = workbook.Sheets[n];
+      const { style, numFmt } = buildSheetRenderData(ws);
+      originalSheetMeta[n] = { style, numFmt, mergeCells: parseMerges(ws), cols: ws["!cols"], rows: ws["!rows"] };
+    });
     switchSheet(workbook.SheetNames[0]);
     connectWS();
   }
