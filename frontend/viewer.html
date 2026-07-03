@@ -6,6 +6,7 @@
   <title>Excel Manager — Просмотр</title>
   <link rel="stylesheet" href="/static/css/app.css">
   <script src="/static/vendor/xlsx.full.min.js"></script>
+  <script src="/static/js/xlsx-borders.js"></script>
   <style>
     #sheetContainer { overflow: auto; background: #fff; }
     #sheetContainer table { border-collapse: collapse; font-size: .85rem; min-width: 100%; }
@@ -44,6 +45,8 @@
 
   let workbook = null;
   let currentSheet = null;
+  let originalBytes = null;
+  let sheetLoadGen = 0;
 
   async function load() {
     const res = await apiFetch(`/files/${fileId}/content`);
@@ -52,6 +55,7 @@
     document.getElementById("fileName").textContent = data.filename;
     document.title = `${data.filename} — Просмотр`;
     const bytes = Uint8Array.from(atob(data.content), c => c.charCodeAt(0));
+    originalBytes = bytes;
     workbook = XLSX.read(bytes, { type: "array", cellStyles: true, cellDates: true });
     renderSheetTabs();
     renderSheet(workbook.SheetNames[0]);
@@ -81,7 +85,8 @@
     });
   }
 
-  function renderSheet(name) {
+  async function renderSheet(name) {
+    const myGen = ++sheetLoadGen;
     currentSheet = name;
     document.querySelectorAll(".sheet-tab").forEach(b => b.classList.toggle("active", b.dataset.name === name));
     const ws = workbook.Sheets[name];
@@ -89,6 +94,14 @@
     document.getElementById("sheetContainer").innerHTML = html;
     applyFills(ws);
     applyNumberAndDateFormats(ws);
+    if (originalBytes) {
+      const borders = await window.XlsxBorders.extract(originalBytes, name);
+      if (myGen !== sheetLoadGen) return;
+      Object.keys(borders).forEach(addr => {
+        const el = document.getElementById(`sheetTable-${addr}`);
+        if (el) el.setAttribute("style", (el.getAttribute("style") || "") + ";" + borders[addr]);
+      });
+    }
   }
 
   /* SheetJS Community Edition only exposes fill color (flat on cell.s), not fonts/borders. */

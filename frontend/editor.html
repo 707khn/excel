@@ -9,6 +9,7 @@
   <script src="/static/vendor/xlsx.full.min.js"></script>
   <script src="/static/vendor/jsuites.js"></script>
   <script src="/static/vendor/jspreadsheet.js"></script>
+  <script src="/static/js/xlsx-borders.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100vh; overflow: hidden; font-family: "Segoe UI", Arial, sans-serif; display: flex; flex-direction: column; background: #fff; }
@@ -408,6 +409,7 @@
   let isDirty = false, applyingRemote = false;
   let sel = null;                 // {x1,y1,x2,y2}
   let originalFilename = "";
+  let originalBytes = null;       // raw xlsx bytes, kept for direct-zip border extraction
   let freezeCols = 0, zoom = 100, gridOn = true;
 
   /* ── Helpers ── */
@@ -577,13 +579,22 @@
   const TABLE_H = `calc(100vh - ${NAV_H + RTABS_H + RIBBON_H + FBAR_H + TABS_H}px)`;
 
   let loadingSheet = false;
-  function initSheet(name) {
+  let sheetLoadGen = 0;
+  async function initSheet(name) {
+    const myGen = ++sheetLoadGen;
     if (jspInstance) { try { jspInstance.destroy(); } catch {} jspInstance = null; }
     const container = document.getElementById("spreadsheet");
     container.innerHTML = "";
 
     const sheet = workbook.Sheets[name];
     const { aoa, style, numFmt } = buildSheetRenderData(sheet);
+    if (originalBytes) {
+      const borders = await window.XlsxBorders.extract(originalBytes, name);
+      if (myGen !== sheetLoadGen) return;
+      Object.keys(borders).forEach(addr => {
+        style[addr] = style[addr] ? `${style[addr]};${borders[addr]}` : borders[addr];
+      });
+    }
     const numDataCols = aoa.reduce((m, r) => Math.max(m, r.length), 0);
     const minCols = Math.max(numDataCols, 10);
     const minRows = Math.max(aoa.length, 50);
@@ -691,6 +702,7 @@
     document.getElementById("fileName").textContent = data.filename;
     document.title = `${data.filename} — Редактор`;
     const bytes = Uint8Array.from(atob(data.content), c => c.charCodeAt(0));
+    originalBytes = bytes;
     workbook = XLSX.read(bytes, {type: "array", cellStyles: true, cellDates: true});
     switchSheet(workbook.SheetNames[0]);
     connectWS();
