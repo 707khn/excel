@@ -152,6 +152,20 @@
 
   document.getElementById("logoutBtn").addEventListener("click", () => { clearTokens(); location.href = "/"; });
 
+  // Backend stores UTC timestamps; SQLite round-trips them without a "Z"/offset,
+  // so treat any offset-less string as UTC and always display it in UTC+5,
+  // regardless of the viewing browser's own OS timezone.
+  function formatUTC5(isoString) {
+    const s = /[zZ]|[+-]\d\d:\d\d$/.test(isoString) ? isoString : isoString + "Z";
+    const d = new Date(s);
+    if (Number.isNaN(d.getTime())) return isoString;
+    return new Intl.DateTimeFormat("ru-RU", {
+      timeZone: "Etc/GMT-5",
+      day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit", second: "2-digit",
+    }).format(d);
+  }
+
   // ── Tabs ──────────────────────────────────────────────────────────────────
   let allUsers = [], allFiles = [];
   document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -250,7 +264,7 @@
         <td>${escHtml(f.filename)}${f.has_content === false ? ' <span style="color:#a12;font-weight:600">⚠ нет данных</span>' : ''}</td>
         <td>${f.description ? escHtml(f.description) : '<span class="text-muted">—</span>'}</td>
         <td>${f.file_size ? fmtSize(f.file_size) : '—'}</td>
-        <td>${new Date(f.created_at).toLocaleString("ru")}</td>
+        <td>${formatUTC5(f.created_at)}</td>
         <td>
           <button class="btn btn-secondary btn-sm" onclick="openPerms(${f.id}, '${escAttr(f.filename)}')">Права</button>
           <button class="btn btn-danger btn-sm" onclick="deleteFile(${f.id}, '${escAttr(f.filename)}')">Удалить</button>
@@ -347,7 +361,7 @@
     const tbody = document.querySelector("#logsTable tbody");
     tbody.innerHTML = data.items.map(l => `
       <tr>
-        <td style="white-space:nowrap">${new Date(l.created_at).toLocaleString("ru")}</td>
+        <td style="white-space:nowrap">${formatUTC5(l.created_at)}</td>
         <td>${escHtml(l.user_email)}</td>
         <td><code style="font-size:.8rem;background:#f3f4f6;padding:.1rem .3rem;border-radius:3px">${l.action}</code></td>
         <td>${l.file_name ? escHtml(l.file_name) : '<span class="text-muted">—</span>'}</td>
